@@ -15,3 +15,4 @@ ground_truth:
   - { bug_class: bfla, match: "application-configuration" }  # admin config exposed to unauth
   - { bug_class: mass_assignment, match: "registration" }      # POST /api/Users accepts role=admin
   - { bug_class: price_tamper, match: "negative" }              # /api/BasketItems accepts negative quantity
+  - { bug_class: workflow_bypass, match: "payment" }            # checkout finalizes without payment

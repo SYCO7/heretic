@@ -2,7 +2,7 @@
 
 ![license](https://img.shields.io/badge/license-Apache--2.0-blue)
 ![python](https://img.shields.io/badge/python-3.11%2B-blue)
-![tests](https://img.shields.io/badge/tests-91%20passing-brightgreen)
+![tests](https://img.shields.io/badge/tests-95%20passing-brightgreen)
 ![false--positive rate](https://img.shields.io/badge/FP--rate-0%25-brightgreen)
 
 **Autonomous AI agent that finds business-logic vulnerabilities** — the bug class scanners can't touch and human pentesters still do by hand.
@@ -26,18 +26,18 @@ basket id harvested from the login response). Reproduce it with [`scripts/demo.s
 the terminal recording is [`docs/demo/heretic-demo.cast`](docs/demo/heretic-demo.cast) (`asciinema play`).
 
 ```text
-  identities: guest, userA, userB
-  harvested basket: userA=1, userB=1
-  CONFIRM BOLA — userB reads userA's basket #6
-  CONFIRM BOLA — userA reads userB's basket #7
-────────── Phase 3d hypotheses — excessive data exposure (mechanical) ──────────
   CONFIRM excessive_data_exposure — basketitem list leaks all users' records
-────────────────── 4 confirmed · 9 dropped (false positives) ───────────────────
+  CONFIRM bfla — admin function /rest/admin/application-configuration is exposed to unauthenticated users
+  CONFIRM mass_assignment — registration at /api/Users accepts privileged field 'role'
+  CONFIRM price_tamper — /api/BasketItems accepts a negative quantity (-100)
+  CONFIRM workflow_bypass — order finalized at /rest/basket/6/checkout without a payment step
+────────────────── 7 confirmed · 17 dropped (false positives) ───────────────────
 ```
 
-The 9 "dropped" are list endpoints correctly **not** flagged (public catalogs / properly-scoped) — the
-false-positive guard working. On **live crAPI**, with zero config, it autonomously discovers
-`/vehicle/{id}/location` and confirms the documented BOLA the same way.
+Five business-logic classes confirmed on a live app in one command — and **0 false positives**: the 17
+"dropped" are candidates the Oracle refused to confirm (SPA catch-alls, public catalogs, the LLM's wrong
+guesses). Every confirmation is deterministic and reproducible. On **live crAPI**, with zero config, it
+autonomously discovers `/vehicle/{id}/location` and confirms the documented BOLA the same way.
 
 ---
 
@@ -143,7 +143,7 @@ resumable engagements (`scan --save` / `resume`), and a one-command guided flow 
   BOLA targets with no hand-written `objects:`.
   **🎯 On live crAPI with zero config it discovers `/vehicle/{id}/location`, harvests both users' vehicles,
   and confirms the documented BOLA + chain (3 confirmed / 0 dropped / 0 FP) — fully autonomously.**
-- **Offline benchmark:** precision 100% / recall 100% / FP 0% · **91 tests** · `ruff` clean.
+- **Offline benchmark:** precision 100% / recall 100% / FP 0% · **95 tests** · `ruff` clean.
 - **Live-validated on 3 real targets, 3 different BOLA mechanisms, 0 false positives each:**
   **crAPI** (autonomous discovery → list→detail probing → `/vehicle/{id}/location`),
   **Juice Shop** (login-response id harvest → `/rest/basket/{id}`),

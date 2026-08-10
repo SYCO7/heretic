@@ -227,6 +227,17 @@ class Orchestrator:
             if skipped:
                 c.print(f"  [yellow]skipped[/] price-tamper probe — {self._skip_hint()}")
 
+        # Phase 3h — workflow bypass (mechanical, state-changing → live-gated)
+        if "workflow_bypass" in cfg.classes:
+            from .workflow import build_workflow_hypotheses
+            c.rule("[bold]Phase 3h[/] hypotheses — workflow bypass (mechanical)")
+            wf_hyps = build_workflow_hypotheses(cfg, disc_endpoints)
+            conf, drop, skipped = self._run_hyps(wf_hyps, "workflow")
+            findings += conf
+            dropped += drop
+            if skipped:
+                c.print(f"  [yellow]skipped[/] workflow probe — {self._skip_hint()}")
+
         # Phase 2/3b — LLM classes (intent model -> hypotheses -> oracle)
         llm_classes = [k for k in cfg.classes if k in LLM_CLASSES]
         if self.router.any() and llm_classes:

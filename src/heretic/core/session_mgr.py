@@ -280,7 +280,39 @@ class SessionManager:
             return self._execute_massassign(hyp)
         if hyp.invariant_id == "PRICE:negative_quantity":
             return self._execute_pricetamper(hyp)
+        if hyp.invariant_id == "WORKFLOW:finalize_without_prereq":
+            return self._execute_workflow(hyp)
         return self._execute_sequence(hyp)
+
+    def _execute_workflow(self, hyp: Hypothesis) -> TestResult:
+        """Try to finalize an order without paying (checkout returns a confirmation), or to set
+        a client-controlled workflow state on an order create endpoint."""
+        from .workflow import STATE_FIELDS, order_confirmation, reflects_state
+
+        role = next((r for r in self.clients if r != "guest"), "guest")
+        bid = _find_id(self.login_json.get(role), ("bid", "basket", "cart", "order")) or 1
+        attempts: list[dict] = []
+
+        # 1) finalize without payment — a checkout endpoint that returns an order confirmation
+        for tmpl in hyp.meta["checkout_paths"]:
+            path = tmpl.replace("{bid}", str(bid))
+            snap = self._send(role, "POST", path, {})
+            conf = order_confirmation(snap.get("json")) if snap["status"] in (200, 201) else None
+            attempts.append({"path": path, "status": snap["status"], "kind": "unpaid_checkout"})
+            if conf:
+                return TestResult(hyp, responses={"hit": {"kind": "unpaid_checkout", "path": path,
+                                                          "field": conf[0], "value": conf[1]}, "attempts": attempts})
+
+        # 2) client-controlled workflow state on an order create endpoint
+        for path in hyp.meta["create_paths"]:
+            for fld, value in STATE_FIELDS:
+                snap = self._send(role, "POST", path, {fld: value})
+                hit = snap["status"] in (200, 201) and reflects_state(snap.get("json"), fld, value)
+                attempts.append({"path": path, "status": snap["status"], "kind": "state_injection"})
+                if hit:
+                    return TestResult(hyp, responses={"hit": {"kind": "state_injection", "path": path,
+                                                              "field": fld, "value": value}, "attempts": attempts})
+        return TestResult(hyp, responses={"hit": None, "attempts": attempts})
 
     def _execute_pricetamper(self, hyp: Hypothesis) -> TestResult:
         """POST a negative-quantity line item to each candidate endpoint; confirm if reflected."""

@@ -287,3 +287,20 @@ Hit that and you have something real, publishable, and star-worthy on GitHub.
       (HIGH)** — negative order total. The LLM's plausible-but-wrong guess dropped alongside (0 FP). 91 tests.
 - **Two logic classes (mass-assignment, price-tamper) now confirm live, deterministically, at 0 FP.**
       Remaining LLM-only class: workflow_bypass (call a later step, read state back). Same playbook next.
+
+### M18 — Deterministic workflow bypass — ✅ BUILT · LIVE · 🏁 ALL LOGIC CLASSES LIVE
+**Goal:** the last logic class — finalize a workflow without its prerequisite.
+- [x] `core/workflow.py` — two signals: (1) **unpaid finalization** — a checkout endpoint returns an
+      order *confirmation* (specific tokens, not a bare id echo) although HERETIC never paid; (2)
+      **client-controlled state** — an order/subscription create endpoint reflects a client-supplied
+      `status: paid` / `paid: true`. State-changing → live-gated.
+- [x] FP guard: tightened the confirmation keys (a bare `order_id` echo is NOT a confirmation) after it
+      first false-flagged the benchmark's `/api/checkout` — caught by the FP-gate.
+- [x] **🎯 Live Juice Shop:** `POST /rest/basket/{bid}/checkout` returns an order confirmation with no
+      payment step → **CONFIRM workflow_bypass (HIGH)**. 95 tests green.
+- [x] **🏁 Full deterministic suite on live Juice Shop, one command: 7 confirmed across 5 classes
+      (data-exposure ×2, BFLA, mass-assignment, price-tamper, workflow-bypass) — 0 false positives.**
+- **Every business-logic class HERETIC claims now confirms on a live target, deterministically:**
+      BOLA · BFLA · data-exposure · mass-assignment · price-tamper · workflow-bypass · race/TOCTOU.
+      The deterministic oracles are the moat; the LLM proposes surface but never sources a confirmation
+      you trust. **This is the milestone the whole project was aiming at.**

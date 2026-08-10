@@ -110,6 +110,8 @@ class Oracle:
             return self._verify_massassign(hyp, result)
         if hyp.invariant_id == "PRICE:negative_quantity":
             return self._verify_pricetamper(hyp, result)
+        if hyp.invariant_id == "WORKFLOW:finalize_without_prereq":
+            return self._verify_workflow(hyp, result)
         oracle = (hyp.meta or {}).get("oracle")
         if oracle == "invariant_assertion":
             return self._verify_assertion(hyp, result)
@@ -195,6 +197,27 @@ class Oracle:
             observed=f"{succ} of {n} concurrent requests succeeded (expected ≤{exp}) — missing atomic enforcement",
             proof={"oracle": "parallel_success_count", "success_count": succ, "parallel": n,
                    "expect_max": exp, "poc": hyp.request_sequence}))
+
+    # ---- deterministic workflow bypass ---------------------------------
+
+    def _verify_workflow(self, hyp: Hypothesis, result: TestResult) -> Verdict:
+        hit = result.responses.get("hit")
+        if not hit:
+            return Verdict(False, "no finalize-without-prerequisite path succeeded")
+        path, field, value = hit["path"], hit["field"], hit["value"]
+        if hit["kind"] == "unpaid_checkout":
+            return Verdict(True, "order finalized without a payment step", finding=_finding(
+                hyp, title=f"workflow_bypass — order finalized at {path} without a payment step",
+                observed=f"POST {path} returned an order confirmation ({field}={value!r}) although the "
+                         f"caller never completed a payment step — the payment prerequisite is not enforced",
+                proof={"oracle": "unpaid_finalization", "path": path, "confirmation_field": field,
+                       "confirmation": str(value), "poc": [{"method": "POST", "url": path, "body": {}}]}))
+        return Verdict(True, "client-controlled workflow state accepted", finding=_finding(
+            hyp, title=f"workflow_bypass — {path} accepts client-controlled state '{field}'",
+            observed=f"POST {path} with {field}={value!r} was accepted and reflected — the client "
+                     f"dictates a workflow state the server should own",
+            proof={"oracle": "reflected_workflow_state", "path": path, "field": field,
+                   "value": str(value), "poc": [{"method": "POST", "url": path, "body": {field: value}}]}))
 
     # ---- deterministic price tampering (negative quantity) -------------
 
