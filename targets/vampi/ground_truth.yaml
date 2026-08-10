@@ -1,0 +1,9 @@
+# Documented bugs HERETIC finds in VAmPI (after /createdb + a book per user).
+# Confirmed live end-to-end: 2 book BOLAs (ownership hidden behind a leaky list, attributed
+# via each record's `user` field) + public data exposure of user email/password (unauth) + chain.
+ground_truth:
+  - { bug_class: bola,  match: "book" }
+  - { bug_class: bola,  match: "book" }
+  - { bug_class: excessive_data_exposure, match: "email" }        # /users/v1 leaks emails, no auth
+  - { bug_class: excessive_data_exposure, match: "password" }     # debug endpoint leaks passwords
+  - { bug_class: chain, match: "Bulk data exfiltration" }

@@ -1,0 +1,60 @@
+# Rules of Engagement — HERETIC will REFUSE to run without a valid, signed RoE.
+# Copy to roe.yaml and edit. See docs/07-GUARDRAILS.md.
+
+engagement:    "crAPI internal lab"
+authorized_by: "operator@example.com"   # who authorized this test
+signed:        true                       # GATE: must be true or tool refuses
+
+scope:
+  allow:                                  # every request target must match one of these
+    - "*.crapi.local"
+    - "10.10.0.0/24"
+  exclude:                                # never touch these, even if in allow
+    - "*/admin/delete*"
+    - "*/billing/*"
+
+mode:          dry-run                     # dry-run | live  (live also needs authorization)
+max_rate_rps:  5                           # do not DoS the target
+max_parallel:  3                           # cap for race-condition tests
+
+# Per-phase model overrides (only used with `--model auto`). See docs/08-AI-STACK.md.
+# models:
+#   intent:     nemotron-super
+#   hypothesis: ollama:nemotron-nano
+#   judge:      nemotron-super
+#   refute:     openrouter-r1
+
+# Pre-authorize specific destructive action classes (empty = none allowed).
+# e.g. ["place_order"] to let it actually complete a test-account purchase.
+destructive_allowed: []
+
+# Which business-logic classes to test (omit = all).
+classes:
+  - bola
+  - price_tamper
+  - workflow_bypass
+  - mass_assignment
+  - coupon_abuse
+  - race_condition
+  - auth_flow
+
+# Objects to harvest owned ids from + test for BOLA (M1). Example: crAPI shape.
+# Each role fetches list_url to harvest the ids it OWNS, then non-owners are
+# tested against item_url. id_field = the id key inside each list item;
+# list_path = optional dotted path to the array within the list response.
+objects:
+  - name:      vehicle
+    list_url:  "/identity/api/v2/vehicle/vehicles"
+    item_url:  "/identity/api/v2/vehicle/{id}/location"
+    id_field:  "uuid"
+    list_path: "vehicles"
+  - name:      order
+    list_url:  "/workshop/api/shop/orders"
+    item_url:  "/workshop/api/shop/orders/{id}"
+    id_field:  "id"
+    list_path: "orders"
+  - name:      mechanic_report
+    list_url:  "/workshop/api/mechanic/mechanic_report"
+    item_url:  "/workshop/api/mechanic/mechanic_report?report_id={id}"
+    id_field:  "id"
+    list_path: "reports"

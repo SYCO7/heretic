@@ -1,0 +1,14 @@
+# Target profile: OWASP VAmPI (Vulnerable API) — authorized-by-design lab.
+#   docker run -d -p 5001:5000 erev0s/vampi   ·   curl localhost:5001/createdb
+# No objects: → autonomous discovery (VAmPI publishes /openapi.json).
+engagement:    "VAmPI local lab"
+authorized_by: "you@example.com"
+signed:        true
+scope:
+  allow:   ["localhost", "127.0.0.1"]
+  exclude: []
+mode:         dry-run
+max_rate_rps: 30
+max_parallel: 5
+chain: true
+classes: [bola, excessive_data_exposure]

@@ -1,0 +1,30 @@
+# Target profile: OWASP Juice Shop — a deliberately vulnerable web app.
+# Authorized-to-test-by-design. Only run against your own local instance.
+#
+#   docker run -d -p 3000:3000 bkimminich/juice-shop
+#
+# No `objects:` block — HERETIC discovers the attack surface itself (Angular SPA:
+# the JS bundle carries the API routes; `--discover` extracts + pairs them).
+
+engagement:    "OWASP Juice Shop local lab"
+authorized_by: "you@example.com"
+signed:        true
+
+scope:
+  allow:   ["localhost", "127.0.0.1"]
+  exclude: []
+
+mode:         dry-run          # BOLA is read-only. Add mode: live + destructive_allowed for logic classes.
+max_rate_rps: 30
+max_parallel: 5
+destructive_allowed: []
+chain: true
+
+classes: [bola]
+
+# Juice Shop's canonical IDOR: your basket id (bid) is handed to you at login, not
+# via a list endpoint. Harvest it per role and attack /rest/basket/{id} cross-user.
+login_objects:
+  - name:     basket
+    item_url: "/rest/basket/{id}"
+    id_from:  "authentication.bid"

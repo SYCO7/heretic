@@ -1,0 +1,14 @@
+# Juice Shop test identities. Register 2+ users first (the app's Signup page, or
+# POST /api/Users), then copy this to accounts.yaml and fill in real credentials.
+# Juice Shop returns the JWT nested under authentication.token.
+
+login:
+  url:         "/rest/user/login"
+  method:      "POST"
+  token_field: "authentication.token"        # dotted path — token is nested
+  auth_header: "Authorization: Bearer {token}"
+
+roles:
+  - { name: guest, creds: null }
+  - { name: userA, creds: { email: "userA@juice.local", password: "Juice!234" } }
+  - { name: userB, creds: { email: "userB@juice.local", password: "Juice!234" } }

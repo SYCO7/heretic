@@ -1,0 +1,14 @@
+# Documented bugs HERETIC should find in Juice Shop, as {bug_class, match}.
+#
+# The basket IDOR is Juice Shop's canonical ownership bug: userA can read userB's
+# basket at /rest/basket/{bid} (HTTP 200 instead of 403). The basket id is handed
+# to each user at login (authentication.bid), so it is reached via `login_objects`
+# in roe.yaml (login-response id harvest) rather than a list endpoint.
+#
+# Confirmed live end-to-end: 2 BOLAs (both directions) + the bulk-exfil chain, 0 FP.
+
+ground_truth:
+  - { bug_class: bola,  match: "basket" }                     # userB reads userA's basket
+  - { bug_class: bola,  match: "basket" }                     # userA reads userB's basket
+  - { bug_class: excessive_data_exposure, match: "basketitem" }  # /api/BasketItems leaks all users' rows
+  - { bug_class: chain, match: "Bulk data exfiltration" }

@@ -1,0 +1,14 @@
+# crAPI test identities. Register 2+ users in your local crAPI first, then copy
+# this to accounts.yaml and fill in real credentials. userA/userB are the two
+# distinct victims/attackers the differential BOLA oracle needs.
+
+login:
+  url:         "/identity/api/auth/login"
+  method:      "POST"
+  token_field: "token"                       # crAPI returns a JWT in the "token" field
+  auth_header: "Authorization: Bearer {token}"
+
+roles:
+  - { name: guest, creds: null }
+  - { name: userA, creds: { email: "userA@crapi.local", password: "@UserA3690" } }
+  - { name: userB, creds: { email: "userB@crapi.local", password: "@UserB3690" } }

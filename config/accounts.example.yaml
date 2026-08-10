@@ -1,0 +1,23 @@
+# Test accounts — OPERATOR-OWNED ONLY. Never real end-user data.
+# HERETIC uses multiple roles simultaneously for differential (cross-session) testing.
+# Copy to accounts.yaml and edit. accounts.yaml is gitignored.
+
+login:
+  url:      "https://crapi.local/identity/api/auth/login"
+  method:   "POST"
+  # how to read the token/cookie out of the login response:
+  token_field: "token"          # json field, or "cookie:session" for a cookie
+  auth_header: "Authorization: Bearer {token}"
+
+roles:
+  - name:  guest                 # unauthenticated baseline
+    creds: null
+
+  - name:  userA
+    creds: { email: "userA@test.local", password: "TestPass123!" }
+
+  - name:  userB                 # the "victim" identity for BOLA/IDOR differential
+    creds: { email: "userB@test.local", password: "TestPass123!" }
+
+  - name:  admin
+    creds: { email: "admin@test.local", password: "AdminPass123!" }

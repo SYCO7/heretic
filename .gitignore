@@ -1,0 +1,44 @@
+# python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+# heretic engagement data (NEVER commit — may contain client data)
+engagements/
+*.db
+*.sqlite
+findings*.html
+findings*.json
+report*.md
+dataset*.jsonl
+memory*.jsonl
+*.trace.jsonl
+
+# secrets / config with real creds (NOTE: gitignore has no inline comments —
+# a pattern must be alone on its line, or it matches nothing)
+# real test-account creds, any directory:
+accounts.yaml
+# root-level working RoE from `heretic init`:
+/roe.yaml
+.env
+# ...but DO ship the bundled target starter profiles (scope/ground-truth, no creds):
+!targets/**/roe.yaml
+!targets/**/ground_truth.yaml
+!targets/**/accounts.yaml.example
+
+# local agent / editor state
+.claude/
+.pytest_cache/
+
+# rag store
+.chroma/
+knowledge/*.index
+
+# os / editor
+.DS_Store
+.idea/
+.vscode/

@@ -1,0 +1,36 @@
+# Attack-pattern corpus (RAG-lite). Paraphrased tradecraft keyed by bug class.
+# Sources: OWASP WSTG, PortSwigger Web Security Academy, HackTricks.
+# The hypothesis engine retrieves the most relevant lines per invariant and
+# grounds the LLM prompt with them.
+
+bola:
+  - "Swap object identifiers (numeric, UUID, slug) captured from another user's session and compare responses."
+  - "Missing object-level authorization often affects write endpoints too (PUT/PATCH/DELETE), not just GET. (WSTG-ATHZ-04)"
+  - "Try id encodings: base64, hashids, sequential neighbours; check nested ids in JSON bodies and headers."
+
+price_tamper:
+  - "Submit a client-controlled price/total/amount/currency field and check whether the server trusts it."
+  - "Try negative quantities, fractional quantities, and integer overflow on totals."
+  - "Compare the charged amount to the catalog price; the server must recompute totals server-side. (PortSwigger business-logic)"
+
+mass_assignment:
+  - "Add privileged fields (role, is_admin, isAdmin, admin, balance, user_id, verified) to create/update bodies."
+  - "Read the object back after writing to confirm the privileged field persisted."
+  - "Diff a request with and without the extra field to distinguish acceptance from silent ignore."
+
+workflow_bypass:
+  - "Invoke a later workflow step directly, skipping prerequisites (e.g. ship before pay, confirm before verify)."
+  - "Replay a completed-state transition or force an out-of-order status change."
+  - "Look for steps that trust a client-supplied state/status field instead of server state."
+
+coupon_abuse:
+  - "Redeem a single-use coupon multiple times, including concurrently (TOCTOU)."
+  - "Stack multiple discount codes or reapply the same code after partial refunds."
+
+race_condition:
+  - "Fire N concurrent identical requests and count successes against the intended limit (double-spend, limit bypass)."
+  - "Target check-then-act flows: balance debit, inventory decrement, one-time token consumption."
+
+auth_flow:
+  - "Request password-reset/OTP for another user's account; test whether tokens are bound to the requester."
+  - "Skip a 2FA/verification step by calling the post-verification endpoint directly."

@@ -1,0 +1,9 @@
+login:
+  url:         "/users/v1/login"
+  method:      "POST"
+  token_field: "auth_token"
+  auth_header: "Authorization: Bearer {token}"
+roles:
+  - { name: guest, creds: null }
+  - { name: userA, creds: { username: "name1", password: "pass1" } }
+  - { name: userB, creds: { username: "name2", password: "pass2" } }

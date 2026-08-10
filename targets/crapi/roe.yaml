@@ -1,0 +1,55 @@
+# Target profile: OWASP crAPI (completely ridiculous API) — a deliberately
+# vulnerable lab. STARTER TEMPLATE: endpoint paths/fields vary between crAPI
+# builds — verify against YOUR instance (open its Swagger / proxy the traffic)
+# and tune list_url/item_url/id_field before trusting the score.
+#
+# crAPI is authorized-to-test-by-design. Only run against your own local crAPI.
+
+engagement:    "crAPI local lab"
+authorized_by: "you@example.com"
+signed:        true
+
+scope:
+  allow:   ["crapi.local", "127.0.0.1", "localhost"]
+  exclude: []
+
+mode:         dry-run          # BOLA is read-only (safe). For price/mass/workflow/race
+                               # set `mode: live` + destructive_allowed below.
+max_rate_rps: 5
+max_parallel: 5
+destructive_allowed: []        # e.g. ["*"] to allow state-changing tests once authorized
+chain: true
+
+classes: [bola]        # focused first win; add more once vehicle BOLA confirms
+
+# --- objects to harvest owned ids from + test for BOLA -----------------
+# TUNED to a real crAPI build (2026), confirmed via scripts/probe.py.
+# PREREQUISITE: add a vehicle to BOTH userA and userB first (MailHog VIN+pincode
+# -> crAPI "Add Vehicle"), else the vehicles list is [] and there's nothing to attack.
+objects:
+  - name:      vehicle_location
+    list_url:  "/identity/api/v2/vehicle/vehicles"        # returns a BARE JSON array
+    item_url:  "/identity/api/v2/vehicle/{id}/location"   # crAPI's flagship BOLA (no ownership check)
+    id_field:  "uuid"
+    # list_path omitted on purpose — response is a bare array, not {"vehicles":[...]}
+
+# order + mechanic_report disabled: /shop/orders 500s and reports need seeded data.
+# Re-enable once purchases/reports exist and the real paths are confirmed.
+
+# --- race / TOCTOU probes (need mode: live + destructive_allowed) -------
+races:
+  - name:               coupon
+    url:                "/community/api/v2/coupon/validate-coupon"
+    method:             "POST"
+    body:               { coupon_code: "TRAC075" }
+    as_role:            userA
+    parallel:           10
+    expect_max_success: 1
+    success_status:     200
+
+# --- optional per-phase model routing (with --model auto) --------------
+# models:
+#   intent:     nemotron-super
+#   hypothesis: ollama:nemotron-nano
+#   judge:      nemotron-super
+#   refute:     openrouter-r1
