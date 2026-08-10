@@ -194,6 +194,17 @@ class Orchestrator:
             dropped += drop
             self._mark_done("excessive_data_exposure")
 
+        # Phase 3e — broken function-level authorization (mechanical, read-only)
+        if "bfla" in cfg.classes:
+            from .bfla import build_bfla_hypotheses
+            c.rule("[bold]Phase 3e[/] hypotheses — broken function-level auth (mechanical)")
+            bfla_hyps = build_bfla_hypotheses(cfg, disc_endpoints)
+            c.print(f"  queued {len(bfla_hyps)} admin-function checks")
+            conf, drop, _ = self._run_hyps(bfla_hyps, "bfla")
+            findings += conf
+            dropped += drop
+            self._mark_done("bfla")
+
         # Phase 2/3b — LLM classes (intent model -> hypotheses -> oracle)
         llm_classes = [k for k in cfg.classes if k in LLM_CLASSES]
         if self.router.any() and llm_classes:

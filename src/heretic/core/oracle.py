@@ -37,7 +37,7 @@ _SEVERITY = {
     "bola": Severity.HIGH, "price_tamper": Severity.HIGH,
     "mass_assignment": Severity.CRITICAL, "workflow_bypass": Severity.HIGH,
     "coupon_abuse": Severity.MEDIUM, "race_condition": Severity.HIGH,
-    "excessive_data_exposure": Severity.HIGH,
+    "excessive_data_exposure": Severity.HIGH, "bfla": Severity.HIGH,
 }
 _REMEDIATION = {
     "price_tamper": "Compute price/total server-side from the catalog; never trust client-supplied amounts.",
@@ -47,6 +47,8 @@ _REMEDIATION = {
     "race_condition": "Make check-then-act atomic (DB constraints, locks, idempotency keys) to prevent double-spend.",
     "excessive_data_exposure": "Scope list queries to the authenticated user; filter records by owner "
                                "server-side and never return other users' rows.",
+    "bfla": "Enforce role checks server-side on every administrative endpoint; deny by default and "
+            "verify the caller's privilege, not just that they are authenticated.",
 }
 
 _JUDGE_SYS = (
@@ -102,6 +104,8 @@ class Oracle:
             return self._verify_race(hyp, result)
         if hyp.bug_class == "excessive_data_exposure":
             return self._verify_exposure(hyp, result)
+        if hyp.bug_class == "bfla":
+            return self._verify_bfla(hyp, result)
         oracle = (hyp.meta or {}).get("oracle")
         if oracle == "invariant_assertion":
             return self._verify_assertion(hyp, result)
@@ -187,6 +191,44 @@ class Oracle:
             observed=f"{succ} of {n} concurrent requests succeeded (expected ≤{exp}) — missing atomic enforcement",
             proof={"oracle": "parallel_success_count", "success_count": succ, "parallel": n,
                    "expect_max": exp, "poc": hyp.request_sequence}))
+
+    # ---- broken function-level authorization (admin function, wrong role) ---
+
+    def _verify_bfla(self, hyp: Hypothesis, result: TestResult) -> Verdict:
+        from .bfla import has_strong_marker
+
+        r = result.responses
+        path = hyp.meta["path"]
+        guest, ua, admin = r.get("guest"), r.get("userA"), r.get("admin")
+
+        def reaches(snap):
+            if snap is None or snap["status"] not in (200, 201) or not _nontrivial(snap):
+                return False
+            # a SPA serves index.html for unknown routes — that's the frontend, not an admin FUNCTION
+            return not (snap.get("json") is None and _looks_html(snap.get("body", "")))
+
+        # pattern 1: an admin function open to UNAUTHENTICATED callers — critical
+        if reaches(guest):
+            return Verdict(True, "admin function reachable without authentication", finding=_finding(
+                hyp, title=f"bfla — admin function {path} is exposed to unauthenticated users",
+                observed=f"guest (no auth) received HTTP {guest['status']} from the admin endpoint {path}",
+                proof={"oracle": "function_level_access", "path": path, "guest_status": guest["status"],
+                       "reached_by": "guest", "poc": hyp.request_sequence}))
+
+        # pattern 2: a regular user reaches an admin function guest is denied — needs corroboration
+        if reaches(ua):
+            admin_ok = reaches(admin)
+            if admin_ok or has_strong_marker(path):
+                by = "matches an admin function admin can reach" if admin_ok else "path is an admin function"
+                return Verdict(True, "regular user reaches an admin function", finding=_finding(
+                    hyp, title=f"bfla — regular user reaches admin function {path}",
+                    observed=f"userA (non-admin) received HTTP {ua['status']} from {path} "
+                             f"while guest is denied ({(guest or {}).get('status')}); {by}",
+                    proof={"oracle": "function_level_access", "path": path, "userA_status": ua["status"],
+                           "guest_status": (guest or {}).get("status"),
+                           "admin_status": (admin or {}).get("status"), "poc": hyp.request_sequence}))
+            return Verdict(False, "reachable by a user but no admin role / strong marker to corroborate")
+        return Verdict(False, "regular user cannot reach it — access control holds")
 
     # ---- excessive data exposure: co-mingled owners in a private list ---
 
@@ -335,6 +377,12 @@ def _records(payload: Any, list_path: str | None) -> list[dict]:
             arrays = [v for v in data.values() if isinstance(v, list)]
             data = arrays[0] if arrays else []
     return [x for x in data if isinstance(x, dict)] if isinstance(data, list) else []
+
+
+def _looks_html(body: str) -> bool:
+    """A SPA shell / HTML page, not a JSON API response."""
+    t = (body or "")[:400].lstrip().lower()
+    return t.startswith(("<!doctype html", "<html")) or "<head" in t or "<body" in t
 
 
 def _nontrivial(snap: dict[str, Any]) -> bool:

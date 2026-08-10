@@ -7,3 +7,4 @@ ground_truth:
   - { bug_class: excessive_data_exposure, match: "email" }        # /users/v1 leaks emails, no auth
   - { bug_class: excessive_data_exposure, match: "password" }     # debug endpoint leaks passwords
   - { bug_class: chain, match: "Bulk data exfiltration" }
+  - { bug_class: bfla, match: "_debug" }                       # debug endpoint exposed to unauth

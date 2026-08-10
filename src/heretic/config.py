@@ -17,7 +17,7 @@ import yaml
 from pydantic import BaseModel, Field
 
 ALL_CLASSES = [
-    "bola", "excessive_data_exposure", "price_tamper", "workflow_bypass",
+    "bola", "bfla", "excessive_data_exposure", "price_tamper", "workflow_bypass",
     "mass_assignment", "coupon_abuse", "race_condition", "auth_flow",
 ]
 

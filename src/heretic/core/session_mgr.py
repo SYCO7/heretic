@@ -257,7 +257,16 @@ class SessionManager:
             return self._execute_race(hyp)
         if hyp.bug_class == "excessive_data_exposure":
             return self._execute_exposure(hyp)
+        if hyp.bug_class == "bfla":
+            return self._execute_bfla(hyp)
         return self._execute_sequence(hyp)
+
+    def _execute_bfla(self, hyp: Hypothesis) -> TestResult:
+        """Fetch an admin-marked endpoint as userA, admin, and guest — the Oracle diffs access."""
+        url = hyp.meta["path"]
+        responses = {role: self._snap(role, url)
+                     for role in ("userA", "admin", "guest") if role in self.clients}
+        return TestResult(hypothesis=hyp, responses=responses)
 
     def _execute_exposure(self, hyp: Hypothesis) -> TestResult:
         """Fetch the list as userA, userB, and guest — the Oracle inspects owner fields."""

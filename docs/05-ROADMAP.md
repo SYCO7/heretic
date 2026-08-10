@@ -227,6 +227,24 @@ real bug with zero operator config.
 - **Track record now: crAPI · Juice Shop · VAmPI — three real targets, three different BOLA mechanisms,
       0 false positives each.**
 
+### M15 — Broken Function-Level Authorization (BFLA) + public data-exposure — ✅ BUILT · LIVE
+**Goal:** deterministic detection of two more OWASP-API classes, moat-aligned (0 FP).
+- [x] **Public sensitive-data exposure** (extends the data-exposure oracle): a no-auth endpoint that
+      exposes secrets (`password`, `token`, `ssn`) leaks on sight; PII (`email`, `phone`) leaks when it
+      lists many people. **Live VAmPI:** flagged `/users/v1` (emails) and the debug endpoint (email +
+      **passwords**) exposed without auth.
+- [x] **BFLA oracle** (`core/bfla.py`, OWASP API #5) — mechanical, read-only. An admin-marked function
+      reachable by *guest* (open to unauth, critical) or by a *regular user* while guest is denied
+      (privilege escalation, high). Corroborated by an admin role or a strong path marker.
+- [x] **FP guard that matters:** SPAs serve `index.html` (200) for unknown routes — the oracle requires
+      a genuine API response (not the HTML shell), so `/admin`, `/actuator`, … catch-alls are dropped.
+      **Live Juice Shop: 1 confirmed (`/rest/admin/application-configuration`) · 8 SPA fallbacks dropped;
+      VAmPI: 1 confirmed (`/users/v1/_debug`) · 9 dropped — 0 FP each.**
+- [x] 83 tests green; new class `bfla` in the default set (read-only, always safe).
+- **Classes now: BOLA · BFLA · excessive/sensitive data exposure · price · mass · workflow · coupon ·
+      race · (+ chains). Deterministic oracles carry BOLA/BFLA/data-exposure; the LLM path carries the
+      rest. Next: land a price/mass/workflow confirmation on a live target.**
+
 ## Benchmark targets (free, with ground truth)
 
 | Target | Type | Why |
