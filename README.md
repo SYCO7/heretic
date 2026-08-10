@@ -39,6 +39,13 @@ Five business-logic classes confirmed on a live app in one command — and **0 f
 guesses). Every confirmation is deterministic and reproducible. On **live crAPI**, with zero config, it
 autonomously discovers `/vehicle/{id}/location` and confirms the documented BOLA the same way.
 
+It also **catches itself hallucinating.** Real line from a live run — the LLM invented an endpoint that
+isn't on the target, and HERETIC detected it and self-corrected:
+
+```text
+⚠ hallucination detected — 1/3 test(s) referenced endpoints not on the real surface (33%); regenerating grounded
+```
+
 ---
 
 ## Why this exists
