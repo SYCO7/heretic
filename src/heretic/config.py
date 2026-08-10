@@ -138,6 +138,7 @@ class Config(BaseModel):
     mode: str = "dry-run"                             # dry-run | live
     max_rate_rps: int = 5
     max_parallel: int = 3
+    headers: dict[str, str] = Field(default_factory=dict)   # sent on EVERY request (e.g. program-attribution)
     destructive_allowed: list[str] = Field(default_factory=list)
     classes: list[str] = Field(default_factory=lambda: list(ALL_CLASSES))
     accounts_path: Path
@@ -227,6 +228,7 @@ def load_config(
         mode=(mode or gate.get("mode", "dry-run")),
         max_rate_rps=gate.get("max_rate_rps", 5),
         max_parallel=gate.get("max_parallel", 3),
+        headers=gate.get("headers", {}),
         destructive_allowed=gate.get("destructive_allowed", []),
         classes=(classes or gate.get("classes") or list(ALL_CLASSES)),
         accounts_path=accounts,

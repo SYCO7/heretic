@@ -35,8 +35,11 @@ class RoleClient:
         self.role = role
         self._min_interval = 1.0 / max(cfg.max_rate_rps, 1)
         self._last = 0.0
+        # global RoE headers (e.g. a required program-attribution header like BUGCROWD: handle)
+        # apply to EVERY request; per-role auth headers override on collision.
+        merged = {**getattr(cfg, "headers", {}), **(headers or {})}
         self.client = httpx.Client(
-            headers=headers or {},
+            headers=merged,
             timeout=15.0,
             transport=transport,
             follow_redirects=True,

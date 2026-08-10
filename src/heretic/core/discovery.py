@@ -187,6 +187,7 @@ class Discoverer:
                 self.console.print(f"  [yellow]browser capture skipped[/] — {hint}")
             return []
         headers, token = self.s.role_auth(self._roles[0])
+        headers = {**self.cfg.headers, **headers}         # include RoE attribution headers
         routes = [*sorted(self._spa_routes), *self.spec.browser_routes]
         creds = next((r.creds for r in self.cfg.accounts.roles
                       if r.name == self._roles[0] and r.creds), None)
