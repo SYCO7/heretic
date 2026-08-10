@@ -36,6 +36,23 @@ class SiteObservation:
         })
 
 
+def _find_id(obj: Any, hints: tuple[str, ...]) -> Any:
+    """Recursively find an int-valued field whose name contains a hint (e.g. basket `bid`)."""
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            if isinstance(v, int) and not isinstance(v, bool) and any(h in k.lower() for h in hints):
+                return v
+            found = _find_id(v, hints)
+            if found is not None:
+                return found
+    elif isinstance(obj, list):
+        for x in obj:
+            found = _find_id(x, hints)
+            if found is not None:
+                return found
+    return None
+
+
 def _short_err(e: Exception) -> str:
     resp = getattr(e, "response", None)
     if resp is not None:
@@ -261,7 +278,27 @@ class SessionManager:
             return self._execute_bfla(hyp)
         if hyp.invariant_id == "MASS:registration":
             return self._execute_massassign(hyp)
+        if hyp.invariant_id == "PRICE:negative_quantity":
+            return self._execute_pricetamper(hyp)
         return self._execute_sequence(hyp)
+
+    def _execute_pricetamper(self, hyp: Hypothesis) -> TestResult:
+        """POST a negative-quantity line item to each candidate endpoint; confirm if reflected."""
+        from .pricetamper import bodies, reflects_negative_quantity
+
+        role = next((r for r in self.clients if r != "guest"), "guest")
+        basket_id = _find_id(self.login_json.get(role), ("bid", "basket", "cart")) or 1
+        attempts: list[dict] = []
+        for path in hyp.meta["paths"]:
+            for body in bodies(basket_id, 1):
+                snap = self._send(role, "POST", path, body)
+                neg = reflects_negative_quantity(snap.get("json")) if snap["status"] in (200, 201) else None
+                attempts.append({"path": path, "status": snap["status"], "reflected": bool(neg)})
+                if neg:
+                    return TestResult(hyp, responses={
+                        "hit": {"path": path, "field": neg[0], "value": neg[1], "body": body},
+                        "attempts": attempts})
+        return TestResult(hyp, responses={"hit": None, "attempts": attempts})
 
     def _execute_massassign(self, hyp: Hypothesis) -> TestResult:
         """For each registration endpoint: learn a working body, then inject privileged

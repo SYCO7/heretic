@@ -276,3 +276,14 @@ Hit that and you have something real, publishable, and star-worthy on GitHub.
 - **A logic class now confirms live, deterministically.** The LLM hypothesis path still runs alongside
       for exotic cases; the reliable confirmations come from deterministic oracles. Next: price_tamper
       (negative-quantity / total read-back) and workflow_bypass on a live target, same deterministic style.
+
+### M17 — Deterministic price tampering — ✅ BUILT · LIVE
+**Goal:** the second live logic class, same deterministic style.
+- [x] `core/pricetamper.py` — negative-quantity injection: POST a cart/order line item with
+      `quantity: -100` (basket id sourced from the login response), confirm ONLY if the response
+      reflects the negative value. No legit app stores a negative quantity → a negative order total is
+      an unambiguous, 0-FP signal. State-changing → live-gated.
+- [x] **🎯 Live Juice Shop:** `POST /api/BasketItems` accepts `quantity=-100` → **CONFIRM price_tamper
+      (HIGH)** — negative order total. The LLM's plausible-but-wrong guess dropped alongside (0 FP). 91 tests.
+- **Two logic classes (mass-assignment, price-tamper) now confirm live, deterministically, at 0 FP.**
+      Remaining LLM-only class: workflow_bypass (call a later step, read state back). Same playbook next.

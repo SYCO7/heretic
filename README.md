@@ -2,7 +2,7 @@
 
 ![license](https://img.shields.io/badge/license-Apache--2.0-blue)
 ![python](https://img.shields.io/badge/python-3.11%2B-blue)
-![tests](https://img.shields.io/badge/tests-87%20passing-brightgreen)
+![tests](https://img.shields.io/badge/tests-91%20passing-brightgreen)
 ![false--positive rate](https://img.shields.io/badge/FP--rate-0%25-brightgreen)
 
 **Autonomous AI agent that finds business-logic vulnerabilities** — the bug class scanners can't touch and human pentesters still do by hand.
@@ -143,7 +143,7 @@ resumable engagements (`scan --save` / `resume`), and a one-command guided flow 
   BOLA targets with no hand-written `objects:`.
   **🎯 On live crAPI with zero config it discovers `/vehicle/{id}/location`, harvests both users' vehicles,
   and confirms the documented BOLA + chain (3 confirmed / 0 dropped / 0 FP) — fully autonomously.**
-- **Offline benchmark:** precision 100% / recall 100% / FP 0% · **87 tests** · `ruff` clean.
+- **Offline benchmark:** precision 100% / recall 100% / FP 0% · **91 tests** · `ruff` clean.
 - **Live-validated on 3 real targets, 3 different BOLA mechanisms, 0 false positives each:**
   **crAPI** (autonomous discovery → list→detail probing → `/vehicle/{id}/location`),
   **Juice Shop** (login-response id harvest → `/rest/basket/{id}`),

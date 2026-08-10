@@ -14,3 +14,4 @@ ground_truth:
   - { bug_class: chain, match: "Bulk data exfiltration" }
   - { bug_class: bfla, match: "application-configuration" }  # admin config exposed to unauth
   - { bug_class: mass_assignment, match: "registration" }      # POST /api/Users accepts role=admin
+  - { bug_class: price_tamper, match: "negative" }              # /api/BasketItems accepts negative quantity

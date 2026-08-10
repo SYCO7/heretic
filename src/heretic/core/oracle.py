@@ -108,6 +108,8 @@ class Oracle:
             return self._verify_bfla(hyp, result)
         if hyp.invariant_id == "MASS:registration":
             return self._verify_massassign(hyp, result)
+        if hyp.invariant_id == "PRICE:negative_quantity":
+            return self._verify_pricetamper(hyp, result)
         oracle = (hyp.meta or {}).get("oracle")
         if oracle == "invariant_assertion":
             return self._verify_assertion(hyp, result)
@@ -193,6 +195,20 @@ class Oracle:
             observed=f"{succ} of {n} concurrent requests succeeded (expected ≤{exp}) — missing atomic enforcement",
             proof={"oracle": "parallel_success_count", "success_count": succ, "parallel": n,
                    "expect_max": exp, "poc": hyp.request_sequence}))
+
+    # ---- deterministic price tampering (negative quantity) -------------
+
+    def _verify_pricetamper(self, hyp: Hypothesis, result: TestResult) -> Verdict:
+        hit = result.responses.get("hit")
+        if not hit:
+            return Verdict(False, "no endpoint accepted a negative quantity")
+        path, field, value = hit["path"], hit["field"], hit["value"]
+        return Verdict(True, "server accepted a negative quantity", finding=_finding(
+            hyp, title=f"price_tamper — {path} accepts a negative {field} ({value})",
+            observed=f"POST {path} stored {field}={value} — a negative line-item quantity makes the "
+                     f"order total negative; the server trusts the client quantity instead of validating it",
+            proof={"oracle": "reflected_negative_quantity", "path": path, "field": field,
+                   "value": value, "poc": [{"method": "POST", "url": path, "body": hit["body"]}]}))
 
     # ---- deterministic mass-assignment at registration -----------------
 

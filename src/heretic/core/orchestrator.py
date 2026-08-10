@@ -216,6 +216,17 @@ class Orchestrator:
             if skipped:
                 c.print(f"  [yellow]skipped[/] registration probe — {self._skip_hint()}")
 
+        # Phase 3g — price tampering via negative quantity (mechanical, state-changing → live-gated)
+        if "price_tamper" in cfg.classes:
+            from .pricetamper import build_pricetamper_hypotheses
+            c.rule("[bold]Phase 3g[/] hypotheses — price tampering (mechanical)")
+            pt_hyps = build_pricetamper_hypotheses(cfg, disc_endpoints)
+            conf, drop, skipped = self._run_hyps(pt_hyps, "pricetamper")
+            findings += conf
+            dropped += drop
+            if skipped:
+                c.print(f"  [yellow]skipped[/] price-tamper probe — {self._skip_hint()}")
+
         # Phase 2/3b — LLM classes (intent model -> hypotheses -> oracle)
         llm_classes = [k for k in cfg.classes if k in LLM_CLASSES]
         if self.router.any() and llm_classes:

@@ -16,8 +16,8 @@ def test_trace_records_confirmed_and_dropped():
     ts = TraceStore()
     F.build_orchestrator(trace=ts).run()
     # every executed primitive test is logged (6 BOLA + 5 logic + 1 mechanical mass-assign
-    # registration probe, which drops on the mock); chains aren't executed
-    assert len(ts.records) == 12
+    # + 1 mechanical price-tamper probe, both drop on the mock); chains aren't executed
+    assert len(ts.records) == 13
     assert any(r["confirmed"] for r in ts.records)
     assert any(not r["confirmed"] for r in ts.records)
     # confirmed primitives == 5 (2 BOLA + price + mass + workflow)
