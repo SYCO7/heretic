@@ -1,0 +1,47 @@
+name: "HERETIC — business-logic scan"
+description: "Find business-logic vulnerabilities (BOLA/IDOR, BFLA, data exposure, price/mass/workflow) and emit SARIF for code scanning."
+branding:
+  icon: "shield"
+  color: "red"
+
+inputs:
+  url:
+    description: "Target base URL (a staging/lab instance you are authorized to test)."
+    required: true
+  roe:
+    description: "Path to roe.yaml (rules of engagement — must be signed + in-scope)."
+    required: true
+  accounts:
+    description: "Path to accounts.yaml (two test accounts)."
+    required: true
+  classes:
+    description: "Comma list of bug classes. Default is the read-only set (safe in CI)."
+    required: false
+    default: "bola,bfla,excessive_data_exposure"
+  model:
+    description: "LLM backend. Default 'fake' — the read-only classes need no key/LLM."
+    required: false
+    default: "fake"
+  fail-on:
+    description: "Fail the job if a finding is >= this severity (info|low|medium|high|critical)."
+    required: false
+    default: "high"
+  sarif-file:
+    description: "Where to write the SARIF report."
+    required: false
+    default: "heretic.sarif"
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+    - shell: bash
+      run: pip install heretic-agent
+    - shell: bash
+      run: |
+        heretic scan -u "${{ inputs.url }}" \
+          --roe "${{ inputs.roe }}" --accounts "${{ inputs.accounts }}" \
+          --classes "${{ inputs.classes }}" --model "${{ inputs.model }}" --discover \
+          --sarif "${{ inputs.sarif-file }}" --fail-on "${{ inputs.fail-on }}"

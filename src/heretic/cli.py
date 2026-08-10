@@ -162,6 +162,8 @@ def scan(
     brute: bool = typer.Option(False, "--brute", help="Also brute-force a path wordlist during discovery (noisy; needs --discover)."),
     browser: bool = typer.Option(False, "--browser", help="Headless-browser XHR capture during discovery (catches runtime-built URLs; needs playwright)."),
     report: Path | None = typer.Option(None, "--report", help="Write HTML report here."),
+    sarif: Path | None = typer.Option(None, "--sarif", help="Write SARIF 2.1.0 here (upload to GitHub/GitLab code scanning)."),
+    fail_on: str | None = typer.Option(None, "--fail-on", help="Exit non-zero if a finding is >= this severity (info|low|medium|high|critical) — for CI."),
     output: str = typer.Option("table", "-o", "--output", help="table | json | md"),
 ) -> None:
     """Run a business-logic assessment against TARGET."""
@@ -205,7 +207,15 @@ def scan(
         console.print(f"  [dim]engagement saved → {save}  ·  resume: heretic resume --engagement {save}[/]")
 
     from .report.render import render
-    render(findings, fmt=output, html_path=report, console=console)
+    render(findings, fmt=output, html_path=report, sarif_path=sarif, target=cfg.url, console=console)
+
+    if fail_on:                              # CI gate: fail the build if a finding meets the threshold
+        order = ["info", "low", "medium", "high", "critical"]
+        floor = order.index(fail_on.lower()) if fail_on.lower() in order else len(order)
+        worst = [f for f in findings if order.index(f.severity.value) >= floor]
+        if worst:
+            console.print(f"[red]FAIL[/] — {len(worst)} finding(s) at or above '{fail_on}'.")
+            raise typer.Exit(code=1)
 
 
 @app.command()

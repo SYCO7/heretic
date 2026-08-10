@@ -20,7 +20,8 @@ _SEV_ORDER = {"critical": 0, "high": 1, "medium": 2, "low": 3, "info": 4}
 
 
 def render(findings: list[Finding], *, fmt: str = "table",
-           html_path: Path | None = None, console: Console | None = None) -> None:
+           html_path: Path | None = None, sarif_path: Path | None = None,
+           target: str = "", console: Console | None = None) -> None:
     console = console or Console()
     findings = sorted(findings, key=lambda f: _SEV_ORDER.get(f.severity.value, 9))
 
@@ -34,6 +35,80 @@ def render(findings: list[Finding], *, fmt: str = "table",
     if html_path:
         html_path.write_text(_as_html(findings))
         console.print(f"[green]report written:[/] {html_path}")
+    if sarif_path:
+        sarif_path.write_text(json.dumps(to_sarif(findings, target), indent=2))
+        console.print(f"[green]SARIF written:[/] {sarif_path} (upload to GitHub code scanning)")
+
+
+# CVSS-like scores for GitHub code-scanning severity
+_SEV_SCORE = {"critical": "9.5", "high": "8.0", "medium": "5.5", "low": "3.1", "info": "1.0"}
+_SEV_LEVEL = {"critical": "error", "high": "error", "medium": "warning", "low": "note", "info": "note"}
+
+
+def to_sarif(findings: list[Finding], target: str = "") -> dict:
+    """SARIF 2.1.0 — ingestible by GitHub / GitLab / Azure code scanning."""
+    classes = {f.bug_class for f in findings}
+    rules = [{
+        "id": c,
+        "name": c.replace("_", " ").title().replace(" ", ""),
+        "shortDescription": {"text": c.replace("_", " ")},
+        "fullDescription": {"text": _RULE_DESC.get(c, "A confirmed business-logic vulnerability.")},
+        "helpUri": "https://github.com/SYCO7/heretic",
+        "properties": {"tags": ["security", "business-logic"]},
+    } for c in sorted(classes)]
+
+    results = []
+    for f in findings:
+        sev = f.severity.value
+        poc = f.proof.get("poc") if isinstance(f.proof, dict) else None
+        uri = _finding_uri(f, target)
+        results.append({
+            "ruleId": f.bug_class,
+            "level": _SEV_LEVEL.get(sev, "warning"),
+            "message": {"text": f"{f.title}\nObserved: {f.observed}\nRemediation: {f.remediation}"},
+            "locations": [{"physicalLocation": {"artifactLocation": {"uri": uri}}}],
+            "properties": {
+                "security-severity": _SEV_SCORE.get(sev, "5.0"),
+                "confidence": _conf(f), "invariant": f.invariant_id,
+                "poc": poc, "oracle": (f.proof or {}).get("oracle"),
+            },
+        })
+    return {
+        "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+        "version": "2.1.0",
+        "runs": [{
+            "tool": {"driver": {
+                "name": "HERETIC", "informationUri": "https://github.com/SYCO7/heretic",
+                "version": _version(), "rules": rules,
+            }},
+            "results": results,
+        }],
+    }
+
+
+_RULE_DESC = {
+    "bola": "Broken Object-Level Authorization (IDOR): a user reads another user's object.",
+    "bfla": "Broken Function-Level Authorization: an admin function reachable by the wrong role.",
+    "excessive_data_exposure": "An endpoint returns records belonging to other users / exposes PII.",
+    "mass_assignment": "A privileged field is accepted from the client (e.g. role at registration).",
+    "price_tamper": "The server trusts a client-supplied price / quantity.",
+    "workflow_bypass": "A workflow step is finalized without its prerequisite (e.g. order without payment).",
+    "race_condition": "A check-then-act flow is not atomic (double-spend / limit bypass).",
+    "chain": "Confirmed primitives compose into a higher-impact attack.",
+}
+
+
+def _finding_uri(f: Finding, target: str) -> str:
+    poc = (f.proof or {}).get("poc") if isinstance(f.proof, dict) else None
+    path = (f.proof or {}).get("path") or (f.proof or {}).get("list_url")
+    if not path and isinstance(poc, list) and poc and isinstance(poc[0], dict):
+        path = poc[0].get("url")
+    return f"{target.rstrip('/')}{path}" if (target and path) else (path or f.invariant_id)
+
+
+def _version() -> str:
+    from .. import __version__
+    return __version__
 
 
 def _conf(f: Finding) -> float:

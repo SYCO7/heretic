@@ -322,3 +322,14 @@ Hit that and you have something real, publishable, and star-worthy on GitHub.
 - **Layered honesty now: reality drops invented endpoints (404) · grounding detects + regenerates ·
       the judge can't confirm a non-existent delta · deterministic proofs can't be LLM-vetoed. The tool
       reports what it can prove and flags its own hallucinations.**
+
+### M20 — CI / code-scanning integration — ✅ BUILT
+**Goal:** real-world adoption — make HERETIC a build gate developers trust.
+- [x] **SARIF 2.1.0 output** (`--sarif`) — findings ingest into GitHub / GitLab / Azure code scanning;
+      per-class rules, `security-severity` scores, endpoint locations, PoC in properties.
+- [x] **`--fail-on <severity>`** — exit non-zero when a confirmed finding meets the threshold (CI gate).
+- [x] **GitHub Action** (`action.yml`, composite) — `uses: SYCO7/heretic@v0.1.0` + upload-sarif; the
+      read-only class set (BOLA/BFLA/data-exposure) needs no LLM key and never changes state, so it's
+      safe on every PR. State-changing classes run on a schedule against staging. See `docs/CI.md`.
+- [x] Because every finding is Oracle-proven (~0 FP), a failing build is a real bug, not AI noise —
+      the property that makes a security gate developers keep on instead of mute. 102 tests green.

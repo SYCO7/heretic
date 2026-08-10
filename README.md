@@ -2,7 +2,7 @@
 
 ![license](https://img.shields.io/badge/license-Apache--2.0-blue)
 ![python](https://img.shields.io/badge/python-3.11%2B-blue)
-![tests](https://img.shields.io/badge/tests-100%20passing-brightgreen)
+![tests](https://img.shields.io/badge/tests-102%20passing-brightgreen)
 ![false--positive rate](https://img.shields.io/badge/FP--rate-0%25-brightgreen)
 
 **Autonomous AI agent that finds business-logic vulnerabilities** — the bug class scanners can't touch and human pentesters still do by hand.
@@ -68,6 +68,7 @@ autonomously discovers `/vehicle/{id}/location` and confirms the documented BOLA
 | 10 | [`docs/10-TECHSTACK.md`](docs/10-TECHSTACK.md) | **Tech stack & design decisions** — every dependency and why |
 | ★ | [`docs/LECTURE.md`](docs/LECTURE.md) | **The talk** — present/explain HERETIC end to end (25–35 min) |
 | ★ | [`docs/RELEASE.md`](docs/RELEASE.md) | Ship it — GitHub + PyPI + the real demo |
+| ★ | [`docs/CI.md`](docs/CI.md) | **Run in CI** — SARIF + GitHub Action + fail-on-severity |
 
 ## Code skeleton
 
