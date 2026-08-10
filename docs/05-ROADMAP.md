@@ -260,3 +260,19 @@ real bug with zero operator config.
 > On crAPI + Juice Shop, HERETIC runs fully autonomously and reports the documented business-logic bugs with a **false-positive rate under 10%** and a reproducible PoC per finding — a result no open tool reliably delivers in 2026.
 
 Hit that and you have something real, publishable, and star-worthy on GitHub.
+
+### M16 — Live logic-class confirmation: deterministic mass-assignment — ✅ BUILT · LIVE
+**Goal:** land a logic class (beyond BOLA/BFLA/exposure) on a live target — the honest frontier.
+- [x] Diagnosed the pure-LLM path live: nemotron generated plausible-but-WRONG tests (basket quantity/
+      price on endpoints that don't reflect the field); the Oracle correctly **dropped all of them (0 FP)**
+      — the moat working, but no confirmation. The real bug (registration role) was never proposed.
+- [x] `core/massassign.py` — deterministic mass-assignment at registration (OWASP API #6): find the
+      signup endpoint, learn a working body, re-register with a privileged field injected
+      (`role: admin`, `isAdmin: true`, …), confirm ONLY if the response reflects it. State-changing →
+      live-gated; creates throwaway accounts; 0 FP by construction.
+- [x] **🎯 Live Juice Shop:** `POST /api/Users` accepts `role=admin` → **CONFIRM mass_assignment
+      (CRITICAL)** — self-registration as admin. **Live VAmPI:** correctly **0 confirmed** (its register
+      ignores the field) — no false positive. 87 tests green.
+- **A logic class now confirms live, deterministically.** The LLM hypothesis path still runs alongside
+      for exotic cases; the reliable confirmations come from deterministic oracles. Next: price_tamper
+      (negative-quantity / total read-back) and workflow_bypass on a live target, same deterministic style.

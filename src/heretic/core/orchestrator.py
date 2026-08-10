@@ -205,6 +205,17 @@ class Orchestrator:
             dropped += drop
             self._mark_done("bfla")
 
+        # Phase 3f — mass-assignment at registration (mechanical, state-changing → live-gated)
+        if "mass_assignment" in cfg.classes:
+            from .massassign import build_massassign_hypotheses
+            c.rule("[bold]Phase 3f[/] hypotheses — mass-assignment at registration (mechanical)")
+            ma_hyps = build_massassign_hypotheses(cfg, disc_endpoints)
+            conf, drop, skipped = self._run_hyps(ma_hyps, "massassign")
+            findings += conf
+            dropped += drop
+            if skipped:
+                c.print(f"  [yellow]skipped[/] registration probe — {self._skip_hint()}")
+
         # Phase 2/3b — LLM classes (intent model -> hypotheses -> oracle)
         llm_classes = [k for k in cfg.classes if k in LLM_CLASSES]
         if self.router.any() and llm_classes:

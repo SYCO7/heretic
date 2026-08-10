@@ -259,7 +259,39 @@ class SessionManager:
             return self._execute_exposure(hyp)
         if hyp.bug_class == "bfla":
             return self._execute_bfla(hyp)
+        if hyp.invariant_id == "MASS:registration":
+            return self._execute_massassign(hyp)
         return self._execute_sequence(hyp)
+
+    def _execute_massassign(self, hyp: Hypothesis) -> TestResult:
+        """For each registration endpoint: learn a working body, then inject privileged
+        fields (unique identity each time) and check whether the response reflects them."""
+        from .massassign import PRIV_FIELDS, body_shapes, creds, reflects
+
+        role = "guest" if "guest" in self.clients else next(iter(self.clients), None)
+        attempts: list[dict] = []
+        n = 0
+        for path in hyp.meta["register_paths"]:
+            email, user, pw = creds(n)
+            n += 1
+            working = next((s for s in body_shapes(email, user, pw)
+                            if self._send(role, "POST", path, s)["status"] in (200, 201)), None)
+            if working is None:
+                continue                                    # not a working registration endpoint
+            for fld, value in PRIV_FIELDS:
+                email, user, pw = creds(n)
+                n += 1
+                body = {k: {"email": email, "username": user, "password": pw,
+                            "passwordRepeat": pw}.get(k, v) for k, v in working.items()}
+                body[fld] = value
+                snap = self._send(role, "POST", path, body)
+                hit = snap["status"] in (200, 201) and reflects(snap.get("json"), fld, value)
+                attempts.append({"path": path, "field": fld, "value": value,
+                                 "status": snap["status"], "reflected": bool(hit)})
+                if hit:
+                    return TestResult(hyp, responses={"hit": {"path": path, "field": fld, "value": value},
+                                                      "attempts": attempts})
+        return TestResult(hyp, responses={"hit": None, "attempts": attempts})
 
     def _execute_bfla(self, hyp: Hypothesis) -> TestResult:
         """Fetch an admin-marked endpoint as userA, admin, and guest — the Oracle diffs access."""

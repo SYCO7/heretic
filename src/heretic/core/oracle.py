@@ -106,6 +106,8 @@ class Oracle:
             return self._verify_exposure(hyp, result)
         if hyp.bug_class == "bfla":
             return self._verify_bfla(hyp, result)
+        if hyp.invariant_id == "MASS:registration":
+            return self._verify_massassign(hyp, result)
         oracle = (hyp.meta or {}).get("oracle")
         if oracle == "invariant_assertion":
             return self._verify_assertion(hyp, result)
@@ -191,6 +193,20 @@ class Oracle:
             observed=f"{succ} of {n} concurrent requests succeeded (expected ≤{exp}) — missing atomic enforcement",
             proof={"oracle": "parallel_success_count", "success_count": succ, "parallel": n,
                    "expect_max": exp, "poc": hyp.request_sequence}))
+
+    # ---- deterministic mass-assignment at registration -----------------
+
+    def _verify_massassign(self, hyp: Hypothesis, result: TestResult) -> Verdict:
+        hit = result.responses.get("hit")
+        if not hit:
+            return Verdict(False, "no registration reflected a client-supplied privileged field")
+        path, field, value = hit["path"], hit["field"], hit["value"]
+        return Verdict(True, "registration accepted a privileged field", finding=_finding(
+            hyp, title=f"mass_assignment — registration at {path} accepts privileged field '{field}'",
+            observed=f"POST {path} with {field}={value!r} was accepted AND reflected in the response — "
+                     f"an attacker self-registers with elevated privilege",
+            proof={"oracle": "reflected_privileged_field", "path": path, "field": field,
+                   "value": str(value), "poc": [{"method": "POST", "url": path, "body": {field: value}}]}))
 
     # ---- broken function-level authorization (admin function, wrong role) ---
 
