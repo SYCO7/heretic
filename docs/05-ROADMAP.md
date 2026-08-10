@@ -304,3 +304,21 @@ Hit that and you have something real, publishable, and star-worthy on GitHub.
       BOLA · BFLA · data-exposure · mass-assignment · price-tamper · workflow-bypass · race/TOCTOU.
       The deterministic oracles are the moat; the LLM proposes surface but never sources a confirmation
       you trust. **This is the milestone the whole project was aiming at.**
+
+### M19 — Anti-hallucination: self-detect + self-correct — ✅ BUILT
+**Goal:** the LLM must not report invented endpoints or ungrounded verdicts.
+- [x] `core/grounding.py` — every LLM hypothesis is checked against the REAL discovered surface
+      (paths normalised, ids collapsed to `{id}`). A request URL that isn't a known path is flagged as
+      **hallucinated**; the hallucination rate is measured and printed.
+- [x] **Self-correction (detect → restructure):** on detection, the hypotheses are regenerated with the
+      real endpoint list as a hard prompt constraint ("use ONLY these endpoints; do not invent paths"),
+      and the grounded results are added. Originals are kept too (an invented endpoint just 404s and
+      self-drops) so no real test is ever lost — detection without false negatives.
+- [x] **Judge grounding (verdict hallucination):** the state-delta judge cannot confirm a violation if
+      nothing actually changed — if `before == after`, the verdict is dropped as ungrounded, even if the
+      LLM insists. Deterministic guard on top of the existing 3-skeptic refuter panel.
+- [x] Hallucination events are written to the trace (audit + learning signal). Grounding only enforces
+      when discovery has mapped a comprehensive surface, so it never over-flags a thin run. 100 tests green.
+- **Layered honesty now: reality drops invented endpoints (404) · grounding detects + regenerates ·
+      the judge can't confirm a non-existent delta · deterministic proofs can't be LLM-vetoed. The tool
+      reports what it can prove and flags its own hallucinations.**

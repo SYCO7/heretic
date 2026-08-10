@@ -122,6 +122,38 @@ class Orchestrator:
                 return v
         return first
 
+    def _dehallucinate(self, engine, model, observation, classes, hyps, disc_endpoints):
+        """Detect LLM-hallucinated endpoints and self-correct by regenerating grounded on the
+        REAL discovered surface. Reports the hallucination rate."""
+        from .grounding import dedup, ground_hypotheses, known_paths
+
+        if not disc_endpoints:
+            return hyps                                   # no comprehensive surface — don't over-ground
+        known = known_paths([e.get("path") for e in observation.endpoints]
+                            + [e.get("path") for e in disc_endpoints]
+                            + [o.list_url for o in self.cfg.objects]
+                            + [o.item_url for o in self.cfg.objects])
+        if not known:
+            return hyps                                   # nothing to ground against — skip
+        _grounded, hallucinated = ground_hypotheses(hyps, known)
+        if not hallucinated:
+            return hyps
+        # DETECTED. Regenerate grounded on the real surface and ADD those tests. We keep the
+        # originals too (an invented endpoint just 404s → self-drops), so no real test is lost —
+        # detect + restructure, without risking a false negative.
+        rate = len(hallucinated) / max(len(hyps), 1)
+        self.console.print(f"  [yellow]⚠ hallucination detected[/] — {len(hallucinated)}/{len(hyps)} "
+                           f"test(s) referenced endpoints not on the real surface ({rate:.0%}); "
+                           f"regenerating grounded")
+        regen = engine.generate(model, observation, classes, known_paths=sorted(known))
+        g2, _ = ground_hypotheses(regen, known)
+        merged = dedup(hyps + g2)
+        self.console.print(f"  [green]✓ self-corrected[/] — added {len(g2)} grounded test(s)")
+        if self.trace is not None:
+            self.trace.add({"event": "hallucination", "hallucinated": len(hallucinated),
+                            "total": len(hyps), "recovered": len(g2)})
+        return merged
+
     def _mark_done(self, *classes: str) -> None:
         if self.engagement is not None:
             for cls in classes:
@@ -246,7 +278,9 @@ class Orchestrator:
             model = IntentModeler(self.router.for_role("intent")).build(observation)
             c.print(f"  {len(model.invariants)} invariants extracted")
             c.rule("[bold]Phase 3b[/] hypotheses — logic classes (LLM + knowledge)")
-            hyps = HypothesisEngine(self.router.for_role("hypothesis"), self.kb, self.memory).generate(model, observation, llm_classes)
+            engine = HypothesisEngine(self.router.for_role("hypothesis"), self.kb, self.memory)
+            hyps = engine.generate(model, observation, llm_classes)
+            hyps = self._dehallucinate(engine, model, observation, llm_classes, hyps, disc_endpoints)
             c.print(f"  queued {len(hyps)} tests: {', '.join(sorted({h.bug_class for h in hyps})) or 'none'}")
             c.rule("[bold]Phase 4-5[/] execute + Oracle (assertion / state-delta)")
             conf, drop, skipped = self._run_hyps(hyps, "logic")

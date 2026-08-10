@@ -44,7 +44,8 @@ class HypothesisEngine:
         self.kb = kb                                  # optional RAG-lite KnowledgeBase
         self.memory = memory                          # optional PatternMemory (self-improvement)
 
-    def generate(self, model: IntentModel, observation, classes: list[str]) -> list[Hypothesis]:
+    def generate(self, model: IntentModel, observation, classes: list[str],
+                 known_paths: list[str] | None = None) -> list[Hypothesis]:
         wanted = [i for i in model.invariants if i.bug_class in classes and i.bug_class in LLM_CLASSES]
         if not wanted:
             return []
@@ -64,9 +65,16 @@ class HypothesisEngine:
             "endpoints": observation.endpoints,
             "attack_patterns": knowledge,             # grounded tradecraft (RAG-lite)
             "learned_patterns": learned,              # from past engagements (self-improvement)
+            # anti-hallucination: on regeneration, the ONLY endpoints allowed
+            "allowed_endpoints": (known_paths or [])[:300],
         }, default=str)[:120_000]
 
-        raw = self.llm.complete(SYSTEM, payload, json=True, tag="hypotheses")
+        system = SYSTEM
+        if known_paths:
+            system += ("\n\nGROUNDING: use ONLY endpoints from allowed_endpoints — a previous attempt "
+                       "invented paths that do not exist. Do NOT invent endpoints; if no allowed endpoint "
+                       "fits an invariant, omit that test.")
+        raw = self.llm.complete(system, payload, json=True, tag="hypotheses")
         try:
             arr = json.loads(raw)
         except (json.JSONDecodeError, TypeError):

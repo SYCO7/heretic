@@ -2,7 +2,7 @@
 
 ![license](https://img.shields.io/badge/license-Apache--2.0-blue)
 ![python](https://img.shields.io/badge/python-3.11%2B-blue)
-![tests](https://img.shields.io/badge/tests-95%20passing-brightgreen)
+![tests](https://img.shields.io/badge/tests-100%20passing-brightgreen)
 ![false--positive rate](https://img.shields.io/badge/FP--rate-0%25-brightgreen)
 
 **Autonomous AI agent that finds business-logic vulnerabilities** — the bug class scanners can't touch and human pentesters still do by hand.
@@ -134,7 +134,7 @@ and HERETIC auto-selects it, or pick it in the Models menu.
 price tampering, mass assignment, workflow bypass, race/TOCTOU, + chains), 7 oracle types, adversarial hardening, a
 benchmark FP-gate, chaining, RAG-lite knowledge, trace logging + distillation export, a
 self-improvement memory loop, a feedback loop (`--iterate`: mutate-and-retry failed logic tests),
-resumable engagements (`scan --save` / `resume`), and a one-command guided flow (`heretic auto`).
+resumable engagements (`scan --save` / `resume`), a one-command guided flow (`heretic auto`), and an anti-hallucination layer (detects LLM-invented endpoints + ungrounded verdicts and self-corrects).
 
 - **Autonomous discovery** (`--discover` / `--brute` / `--browser`): parses OpenAPI/Swagger, extracts +
   prefix-resolves API routes from SPA JS bundles, optional wordlist brute-force, a headless-browser pass
@@ -143,7 +143,7 @@ resumable engagements (`scan --save` / `resume`), and a one-command guided flow 
   BOLA targets with no hand-written `objects:`.
   **🎯 On live crAPI with zero config it discovers `/vehicle/{id}/location`, harvests both users' vehicles,
   and confirms the documented BOLA + chain (3 confirmed / 0 dropped / 0 FP) — fully autonomously.**
-- **Offline benchmark:** precision 100% / recall 100% / FP 0% · **95 tests** · `ruff` clean.
+- **Offline benchmark:** precision 100% / recall 100% / FP 0% · **100 tests** · `ruff` clean.
 - **Live-validated on 3 real targets, 3 different BOLA mechanisms, 0 false positives each:**
   **crAPI** (autonomous discovery → list→detail probing → `/vehicle/{id}/location`),
   **Juice Shop** (login-response id harvest → `/rest/basket/{id}`),

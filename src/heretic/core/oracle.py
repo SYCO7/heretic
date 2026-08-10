@@ -376,6 +376,10 @@ class Oracle:
         before = (result.state_before or {}).get("json")
         if after is None:
             return Verdict(False, "no post-action state to judge")
+        # anti-hallucination: a state-delta violation is impossible if the state did not change.
+        # if the judge claims one anyway, it's hallucinating — drop it, don't trust the LLM.
+        if before is not None and before == after:
+            return Verdict(False, "no state change — a state-delta violation cannot exist (judge ungrounded)")
         rule = hyp.meta.get("invariant_rule", "")
         v = self.judge_llm.judge(_JUDGE_SYS, _state_payload(hyp, result), tag="judge")
         if not v.get("verdict"):
