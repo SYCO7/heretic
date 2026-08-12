@@ -2,7 +2,7 @@
 
 ![license](https://img.shields.io/badge/license-Apache--2.0-blue)
 ![python](https://img.shields.io/badge/python-3.11%2B-blue)
-![tests](https://img.shields.io/badge/tests-102%20passing-brightgreen)
+![tests](https://img.shields.io/badge/tests-104%20passing-brightgreen)
 ![false--positive rate](https://img.shields.io/badge/FP--rate-0%25-brightgreen)
 
 **Autonomous AI agent that finds business-logic vulnerabilities** — the bug class scanners can't touch and human pentesters still do by hand.
