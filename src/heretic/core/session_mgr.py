@@ -139,11 +139,28 @@ class SessionManager:
             self.clients["guest"] = RoleClient(self.cfg, "guest", {}, self.transport)
 
     def _login(self, creds: dict[str, Any]) -> tuple[str, Any]:
-        """Returns (token, parsed-login-body). The body feeds login-response id harvest."""
+        """Returns (token, parsed-login-body). The body feeds login-response id harvest.
+        Handles CSRF-guarded logins (pre-fetch + replay), form-encoded bodies, and
+        session-cookie auth — driven entirely by the LoginSpec that detection produced.
+        `tmp` keeps one httpx client so the CSRF-seed cookies persist into the login POST."""
         login = self.cfg.accounts.login
         assert login is not None
         tmp = RoleClient(self.cfg, "_login", {}, self.transport)
-        resp = tmp.request(login.method, login.url, json=creds)
+        headers: dict[str, str] = {}
+        send: dict[str, Any] = dict(creds)
+        if login.csrf is not None:                       # defeat a CSRF-guarded login
+            from .login_detect import extract_csrf
+            seed = tmp.request("GET", login.csrf.fetch_url)
+            token = extract_csrf(seed, login.csrf.source)
+            if token:
+                if login.csrf.header:
+                    headers[login.csrf.header] = token
+                if login.csrf.field:
+                    send[login.csrf.field] = token
+        if login.content_type == "form":                 # application/x-www-form-urlencoded
+            resp = tmp.request(login.method, login.url, data=send, headers=headers or None)
+        else:
+            resp = tmp.request(login.method, login.url, json=send, headers=headers or None)
         resp.raise_for_status()
         body: Any = None
         with contextlib.suppress(ValueError):

@@ -8,7 +8,7 @@
 
 ![license](https://img.shields.io/badge/license-Apache--2.0-blue)
 ![python](https://img.shields.io/badge/python-3.11%2B-blue)
-![tests](https://img.shields.io/badge/tests-112%20passing-brightgreen)
+![tests](https://img.shields.io/badge/tests-121%20passing-brightgreen)
 ![false--positive rate](https://img.shields.io/badge/FP--rate-~0%25-brightgreen)
 ![status](https://img.shields.io/badge/status-beta-orange)
 
@@ -98,6 +98,113 @@ Verify the install:
 ```bash
 heretic version
 heretic bench      # offline self-test — no network, no API key. Should report FP-rate 0%.
+```
+
+---
+
+## 🖥️ Platform setup — Windows / macOS / Linux
+
+Step-by-step for each OS. Pick your tab.
+
+<details>
+<summary><b>🪟 Windows (PowerShell)</b></summary>
+
+```powershell
+# 1. Install Python 3.11+ (skip if you have it)
+winget install Python.Python.3.12
+
+# 2. Install HERETIC in an isolated environment
+py -m pip install --user pipx
+py -m pipx ensurepath           # then reopen PowerShell
+pipx install heretic-agent
+
+# 3. (optional) Give it an AI key — this shell only
+$env:NVIDIA_API_KEY = "nvapi-xxxxxxxx"
+#    …or persist across shells:
+setx NVIDIA_API_KEY "nvapi-xxxxxxxx"
+
+# 4. Run it
+heretic connect
+```
+
+**From source instead:**
+```powershell
+git clone https://github.com/SYCO7/heretic.git
+cd heretic
+py -m venv .venv
+.\.venv\Scripts\Activate.ps1     # if blocked: Set-ExecutionPolicy -Scope Process RemoteSigned
+pip install -e ".[dev]"
+heretic version
+```
+> If `heretic` isn't found after `pipx install`, reopen the terminal (pipx just added it to PATH), or run `py -m heretic.cli`.
+</details>
+
+<details>
+<summary><b>🍎 macOS (zsh)</b></summary>
+
+```bash
+# 1. Install Python 3.11+ and pipx via Homebrew
+brew install python@3.12 pipx
+pipx ensurepath                 # then reopen Terminal
+
+# 2. Install HERETIC
+pipx install heretic-agent
+
+# 3. (optional) AI key — add the export line to ~/.zshrc to persist
+export NVIDIA_API_KEY="nvapi-xxxxxxxx"
+
+# 4. Run it
+heretic connect
+```
+
+**From source instead:**
+```bash
+git clone https://github.com/SYCO7/heretic.git && cd heretic
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e ".[dev]"
+heretic version
+```
+
+**Fully private / local model:**
+```bash
+brew install ollama
+ollama serve &                  # start the daemon
+ollama pull qwen2.5:7b          # HERETIC auto-selects it — nothing leaves your Mac
+```
+</details>
+
+<details>
+<summary><b>🐧 Linux (bash)</b></summary>
+
+```bash
+# 1. Python 3.11+ (Debian/Ubuntu shown; use your package manager)
+sudo apt install -y python3 python3-venv python3-pip pipx
+pipx ensurepath
+
+# 2. Install HERETIC
+pipx install heretic-agent
+
+# 3. (optional) AI key — add to ~/.bashrc to persist
+export NVIDIA_API_KEY="nvapi-xxxxxxxx"
+
+# 4. Run it
+heretic connect
+```
+
+**From source / Docker:**
+```bash
+git clone https://github.com/SYCO7/heretic.git && cd heretic
+python3 -m venv .venv && source .venv/bin/activate && pip install -e ".[dev]"
+# or: docker build -t heretic . && docker run --rm heretic --help
+```
+</details>
+
+> **Using `--browser` (SPA XHR capture)?** After installing the browser extra, fetch the engine once:
+> `playwright install chromium` (works the same on all three OSes).
+
+**Prefer a `.env` file over shell exports?** Drop a `.env` in your working directory — HERETIC auto-loads it on every command, on every OS:
+```
+NVIDIA_API_KEY=nvapi-xxxxxxxx
 ```
 
 ---
@@ -367,10 +474,35 @@ roles:
   - { name: admin, creds: { email: "admin@test.local", password: "Admin123!" } }
 ```
 
+> 🔎 **`heretic connect` auto-detects all of this** — including **session-cookie logins** (Django / Rails / PHP / Express → `token_field: "cookie:NAME"`), **CSRF-guarded logins** (Laravel / Angular / Rails — it pre-fetches and replays the token via a `csrf:` block), and **form-encoded** logins (`content_type: "form"`). You rarely write this file by hand.
+
 > 🔑 **OTP / MFA / SSO?** You can't script those logins — so paste a token instead. Give the role a `token:` field with a bearer token grabbed from your browser, and HERETIC skips login for that identity:
 > ```yaml
 >   - { name: userA, token: "eyJhbGciOi..." }
 > ```
+
+<details>
+<summary><b>Manual <code>accounts.yaml</code> for a cookie + CSRF login</b> (if you'd rather not use <code>connect</code>)</summary>
+
+```yaml
+login:
+  url:          "/api/login"
+  method:       "POST"
+  content_type: "form"                 # or "json"
+  token_field:  "cookie:session"       # auth lives in a Set-Cookie, not a JSON token
+  auth_header:  "Cookie: session={token}"
+  csrf:                                # pre-fetch a CSRF token and replay it on login
+    fetch_url:  "/login"               # GET this first (seeds the token)
+    source:     "cookie:XSRF-TOKEN"    # cookie:NAME | meta:NAME | input:NAME | json:dotted
+    header:     "X-XSRF-TOKEN"         # send the token in this header …
+    # field:    "_csrf"                # … and/or this body field
+
+roles:
+  - { name: guest, creds: null }
+  - { name: userA, creds: { username: "userA", password: "Pass123!" } }
+  - { name: userB, creds: { username: "userB", password: "Pass123!" } }
+```
+</details>
 
 > ⚠️ `accounts.yaml` holds credentials — it's **gitignored** by default. Never commit it, never use real end-user data.
 

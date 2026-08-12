@@ -45,11 +45,13 @@ class RoleClient:
             follow_redirects=True,
         )
 
-    def request(self, method: str, url: str, json: Any = None) -> httpx.Response:
+    def request(self, method: str, url: str, json: Any = None,
+                data: Any = None, headers: dict[str, str] | None = None) -> httpx.Response:
         full = join(self.cfg.url, url)
         self.cfg.assert_in_scope(full)               # GATE — never bypass
         self._throttle()
-        return self.client.request(method.upper(), full, json=json)
+        # `data` = form-encoded body (application/x-www-form-urlencoded); `json` = JSON body
+        return self.client.request(method.upper(), full, json=json, data=data, headers=headers)
 
     def get(self, url: str) -> httpx.Response:
         return self.request("GET", url)

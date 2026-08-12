@@ -3,6 +3,13 @@ OpenAI-compatible `/chat/completions` API, so one httpx-based client covers
 Nemotron (NVIDIA NIM), Groq, OpenRouter, and Ollama by swapping base_url + model.
 No SDK dependency — just httpx. ScriptedLLM ("fake") runs offline.
 
+Robustness (why real free-tier backends don't fall over):
+  - retry with backoff on rate-limits / 5xx / transient network errors
+  - reasoning-model support: fall back to `reasoning_content` when `content` is
+    empty (Nemotron/R1 style), so the answer is never silently dropped
+  - tolerant JSON: strip ``` fences and recover the first JSON object if a model
+    wraps its verdict in prose — the Oracle never crashes on a chatty judge
+
 Keys via env: NVIDIA_API_KEY, GEMINI_API_KEY, GROQ_API_KEY, OPENROUTER_API_KEY.
 Ollama needs no key. Use `ollama:<model>` for ANY locally-pulled model
 (e.g. `ollama:qwen2.5:3b`, `ollama:nemotron-3-nano`).
@@ -11,6 +18,7 @@ from __future__ import annotations
 
 import json
 import os
+import time
 from typing import Any
 
 import httpx
@@ -21,6 +29,9 @@ from .scripted import ScriptedLLM
 OLLAMA_BASE = os.getenv("OLLAMA_HOST", "http://localhost:11434").rstrip("/") + "/v1"
 
 NVIDIA_BASE = "https://integrate.api.nvidia.com/v1"
+
+_MAX_RETRIES = 3
+_RETRYABLE_STATUS = {408, 409, 425, 429, 500, 502, 503, 504}
 
 REGISTRY: dict[str, dict] = {
     "nemotron-super": {  # NVIDIA free API — brain: intent model + oracle judge
@@ -55,10 +66,12 @@ REGISTRY: dict[str, dict] = {
 class OpenAICompatLLM(LLM):
     """httpx client for any OpenAI-compatible /chat/completions endpoint."""
 
-    def __init__(self, spec: dict) -> None:
+    def __init__(self, spec: dict, transport: httpx.BaseTransport | None = None) -> None:
         self.name = spec["model"]
         self.context_tokens = spec["ctx"]
         self._spec = spec
+        self._retry_backoff = 0.75                       # seconds, scaled by attempt (tests set 0)
+        self._client = httpx.Client(timeout=180.0, transport=transport)
 
     def _headers(self) -> dict[str, str]:
         h = {"Content-Type": "application/json"}
@@ -66,6 +79,25 @@ class OpenAICompatLLM(LLM):
         if key_env and os.getenv(key_env):
             h["Authorization"] = f"Bearer {os.getenv(key_env)}"
         return h
+
+    def _post(self, body: dict[str, Any]) -> dict[str, Any]:
+        """POST with retry/backoff on rate-limits, 5xx, and transient network errors."""
+        url = self._spec["base_url"].rstrip("/") + "/chat/completions"
+        last_err: Exception | None = None
+        for attempt in range(1, _MAX_RETRIES + 1):
+            try:
+                r = self._client.post(url, headers=self._headers(), json=body)
+            except httpx.HTTPError as e:                  # timeout / connection reset / DNS
+                last_err = e
+            else:
+                if r.status_code not in _RETRYABLE_STATUS:
+                    r.raise_for_status()
+                    return r.json()
+                last_err = httpx.HTTPStatusError(
+                    f"retryable HTTP {r.status_code}", request=r.request, response=r)
+            if attempt < _MAX_RETRIES and self._retry_backoff:
+                time.sleep(self._retry_backoff * attempt)
+        raise last_err or RuntimeError("LLM request failed")
 
     def complete(self, system: str, user: str, *, json: bool = False,
                  reasoning: bool = False, tag: str = "") -> str:
@@ -76,20 +108,12 @@ class OpenAICompatLLM(LLM):
         }
         if json:
             body["response_format"] = {"type": "json_object"}
-        url = self._spec["base_url"].rstrip("/") + "/chat/completions"
-        r = httpx.post(url, headers=self._headers(), json=body, timeout=180.0)
-        r.raise_for_status()
-        return r.json()["choices"][0]["message"]["content"] or ""
+        if self._spec.get("max_tokens"):
+            body["max_tokens"] = self._spec["max_tokens"]
+        return _content(self._post(body))
 
     def judge(self, system: str, user: str, *, tag: str = "") -> dict:
-        raw = self.complete(system, user, json=True, tag=tag)
-        try:
-            d = json.loads(_strip_fences(raw))
-        except Exception:
-            return {"verdict": False, "why": "unparseable judge output", "confidence": 0.0}
-        verdict = bool(d.get("verdict", d.get("is_violation", False)))
-        return {"verdict": verdict, "why": d.get("why", ""),
-                "confidence": float(d.get("confidence", 0.5))}
+        return _judge_from(self.complete(system, user, json=True, tag=tag))
 
 
 class GeminiLLM(LLM):
@@ -116,13 +140,19 @@ class GeminiLLM(LLM):
         return resp.text or ""
 
     def judge(self, system: str, user: str, *, tag: str = "") -> dict:
-        raw = self.complete(system, user, json=True, tag=tag)
-        try:
-            d = json.loads(_strip_fences(raw))
-        except Exception:
-            return {"verdict": False, "why": "unparseable judge output", "confidence": 0.0}
-        return {"verdict": bool(d.get("verdict", False)), "why": d.get("why", ""),
-                "confidence": float(d.get("confidence", 0.5))}
+        return _judge_from(self.complete(system, user, json=True, tag=tag))
+
+
+# ---- response parsing helpers -----------------------------------------------
+
+def _content(data: dict[str, Any]) -> str:
+    """The assistant text — falling back to `reasoning_content` when a reasoning
+    model leaves `content` empty (Nemotron/DeepSeek-R1), so we never drop the answer."""
+    try:
+        msg = data["choices"][0]["message"]
+    except (KeyError, IndexError, TypeError):
+        return ""
+    return (msg.get("content") or msg.get("reasoning_content") or "")
 
 
 def _strip_fences(text: str) -> str:
@@ -131,6 +161,49 @@ def _strip_fences(text: str) -> str:
     if t.startswith("```"):
         t = t.split("\n", 1)[-1].rsplit("```", 1)[0]
     return t.strip()
+
+
+def _first_json_object(t: str) -> str | None:
+    """Best-effort: the first brace-balanced {...} block (a chatty model wrapping
+    its verdict in prose). Ignores braces-in-strings, which is fine for verdict JSON."""
+    start = t.find("{")
+    if start < 0:
+        return None
+    depth = 0
+    for i in range(start, len(t)):
+        if t[i] == "{":
+            depth += 1
+        elif t[i] == "}":
+            depth -= 1
+            if depth == 0:
+                return t[start:i + 1]
+    return None
+
+
+def _parse_json(raw: str) -> Any:
+    t = _strip_fences(raw)
+    try:
+        return json.loads(t)
+    except Exception:
+        block = _first_json_object(t)
+        if block:
+            try:
+                return json.loads(block)
+            except Exception:
+                return None
+    return None
+
+
+def _judge_from(raw: str) -> dict:
+    d = _parse_json(raw)
+    if not isinstance(d, dict):
+        return {"verdict": False, "why": "unparseable judge output", "confidence": 0.0}
+    verdict = bool(d.get("verdict", d.get("is_violation", False)))
+    try:
+        confidence = float(d.get("confidence", 0.5))
+    except (TypeError, ValueError):
+        confidence = 0.5
+    return {"verdict": verdict, "why": d.get("why", ""), "confidence": confidence}
 
 
 def get_backend(model_id: str) -> LLM:

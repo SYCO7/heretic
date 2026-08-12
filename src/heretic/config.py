@@ -24,11 +24,24 @@ ALL_CLASSES = [
 
 # ---- accounts (test identities) ---------------------------------------
 
+class CsrfSpec(BaseModel):
+    """How to defeat a CSRF-guarded login: GET `fetch_url` first (persisting cookies),
+    read the token from `source`, then replay it on the login request as a header
+    and/or a body field. Covers Angular/Laravel (XSRF cookie), Django/Rails (hidden
+    input), and SPA meta-tag patterns."""
+    fetch_url: str = "/"                             # page/endpoint that seeds the token
+    source: str = "cookie:XSRF-TOKEN"               # cookie:NAME | meta:NAME | input:NAME | json:dotted
+    header: str | None = "X-XSRF-TOKEN"           # send the token in this request header
+    field: str | None = None                      # and/or in this login-body field
+
+
 class LoginSpec(BaseModel):
     url: str
     method: str = "POST"
     token_field: str = "token"                       # json field, dotted, or "cookie:NAME"
     auth_header: str = "Authorization: Bearer {token}"
+    content_type: str = "json"                       # json | form  (form = application/x-www-form-urlencoded)
+    csrf: CsrfSpec | None = None                   # optional CSRF pre-fetch (None = none needed)
 
 
 class Role(BaseModel):

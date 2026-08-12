@@ -126,11 +126,26 @@ def run_connect(console: Console, *, run_after: bool = True) -> Path | None:
 
     if spec and not spec["otp_hint"]:
         idfield = next((f for f in spec["cred_fields"] if f != "password"), "email")
-        console.print(f"[green]✓ login detected[/] {spec['method']} {spec['url']} "
-                      f"· token at [cyan]{spec['token_field']}[/] · id field [cyan]{idfield}[/]")
-        login_yaml = (f"login:\n  url:         \"{spec['url']}\"\n  method:      \"{spec['method']}\"\n"
+        mech = "cookie session" if spec["token_field"].startswith("cookie:") else "token"
+        extras = ""
+        if spec.get("content_type") == "form":
+            extras += '  content_type: "form"\n'
+        if spec.get("csrf"):
+            cs = spec["csrf"]
+            extras += (f'  csrf:\n    fetch_url: "{cs["fetch_url"]}"\n    source:    "{cs["source"]}"\n')
+            if cs.get("header"):
+                extras += f'    header:    "{cs["header"]}"\n'
+            if cs.get("field"):
+                extras += f'    field:     "{cs["field"]}"\n'
+        console.print(f"[green]✓ login detected[/] {spec['method']} {spec['url']} · {mech} at "
+                      f"[cyan]{spec['token_field']}[/] · id field [cyan]{idfield}[/]"
+                      + ("  [dim](CSRF + form handled)[/]" if spec.get("csrf") else ""))
+        login_yaml = ("login:\n"
+                      f"  url:         \"{spec['url']}\"\n"
+                      f"  method:      \"{spec['method']}\"\n"
                       f"  token_field: \"{spec['token_field']}\"\n"
-                      f"  auth_header: \"Authorization: Bearer {{token}}\"\n\n")
+                      f"  auth_header: \"{spec['auth_header']}\"\n"
+                      + extras + "\n")
         roles_yaml += [f'  - {{ name: userA, creds: {{ {idfield}: "{idA}", password: "{pwA}" }} }}',
                        f'  - {{ name: userB, creds: {{ {idfield}: "{idB}", password: "{pwB}" }} }}']
     else:
