@@ -1,10 +1,20 @@
-"""HERETIC CLI — `heretic scan -u TARGET --roe roe.yaml --accounts accounts.yaml`.
+"""HERETIC CLI — the operator-facing entrypoint (Typer).
 
-This is the operator-facing entrypoint. It loads + validates config (which
-enforces the authorization gate), then hands off to the orchestrator.
+Every command loads + validates config through `config.load_config`, which enforces
+the authorization gate (signed RoE, non-empty scope allowlist) BEFORE any request is
+made — this module never talks to a target directly; it hands off to the Orchestrator,
+which drives the phase pipeline (recon → discovery → hypotheses → Oracle → report).
 
-Skeleton status: wires up commands and the live view; phase logic is stubbed
-in core/ modules with TODOs. Run `heretic --help`.
+Commands:
+  Guided      menu (bare `heretic`) · connect · auto   — zero-config on-ramps
+  Assess      scan                                      — the main CLI scan (all flags)
+              resume                                    — continue a saved engagement
+  Validate    doctor                                    — preflight keys + reachability
+              bench                                     — offline FP-gate (no network/key)
+              livecheck                                 — score precision/recall vs ground truth
+  Utility     init · export · version
+
+Run `heretic --help`, or `heretic <command> --help` for a command's flags.
 """
 from __future__ import annotations
 
