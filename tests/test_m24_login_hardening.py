@@ -81,6 +81,21 @@ def test_detect_form_encoded_login():
     assert spec["token_field"] == "cookie:session"
 
 
+# ---- otp_hint must reflect the matched login, not noisy error pages --------
+
+def _otp_taint(req: httpx.Request) -> httpx.Response:
+    if req.url.path == "/rest/user/login" and json.loads(req.content or b"{}").get("email"):
+        return httpx.Response(200, json={"authentication": {"token": _JWT}})   # clean success, no OTP
+    return httpx.Response(500, json={"error": "could not verify your request"})  # noisy 500s say "verify"
+
+
+def test_otp_hint_not_tainted_by_error_pages():
+    spec = detect_login("http://js.local", "a@x", "pw", transport=httpx.MockTransport(_otp_taint))
+    assert spec is not None
+    assert spec["url"] == "/rest/user/login"
+    assert spec["otp_hint"] is False        # a 500 'verify' page must not flip the flag (Juice Shop bug)
+
+
 # ---- scan-time replay: CSRF pre-fetch + cookie-session auth end to end -----
 
 def _csrf_cookie_app():

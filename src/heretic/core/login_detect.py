@@ -197,7 +197,6 @@ def detect_login(base_url: str, identity: str, password: str, *, phone: str | No
     — or None if nothing authenticated. Tries plain JSON first (fast for APIs/labs),
     then form-encoded, then a CSRF pre-fetch + replay for guarded logins."""
     client = httpx.Client(transport=transport, timeout=12.0, follow_redirects=True)
-    otp_seen = False
     try:
         # pass 1: plain JSON, then form — the common, unguarded case (APIs, labs)
         for content_type in ("json", "form"):
@@ -205,11 +204,11 @@ def detect_login(base_url: str, identity: str, password: str, *, phone: str | No
                 url = join(base_url, path)
                 for body in _cred_bodies(identity, password, phone):
                     resp = _post(client, url, body, content_type, None)
-                    if resp is not None and _looks_otp(resp):
-                        otp_seen = True
                     ok = _success(resp)
                     if ok:
-                        return _spec(path, ok, body, content_type, None, otp_seen)
+                        # otp_hint reflects the MATCHED login response only — never an
+                        # unrelated 4xx/5xx error page that happens to say "verify".
+                        return _spec(path, ok, body, content_type, None, _looks_otp(resp))
 
         # pass 2: CSRF-guarded login — seed a token, then replay it
         csrf = _discover_csrf(client, base_url)
@@ -226,7 +225,7 @@ def detect_login(base_url: str, identity: str, password: str, *, phone: str | No
                         resp = _post(client, url, body, content_type, csrf, token)
                         ok = _success(resp)
                         if ok:
-                            return _spec(path, ok, body, content_type, csrf, otp_seen)
+                            return _spec(path, ok, body, content_type, csrf, _looks_otp(resp))
     finally:
         client.close()
     return None
