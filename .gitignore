@@ -13,6 +13,7 @@ engagements/
 *.sqlite
 findings*.html
 findings*.json
+heretic-report*.html
 report*.md
 dataset*.jsonl
 memory*.jsonl
