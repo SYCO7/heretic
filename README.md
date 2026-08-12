@@ -9,7 +9,7 @@
 ![license](https://img.shields.io/badge/license-Apache--2.0-blue)
 ![python](https://img.shields.io/badge/python-3.11%2B-blue)
 ![version](https://img.shields.io/badge/version-0.1.0-blue)
-![tests](https://img.shields.io/badge/tests-121%20passing-brightgreen)
+![tests](https://img.shields.io/badge/tests-123%20passing-brightgreen)
 ![precision](https://img.shields.io/badge/precision-100%25-brightgreen)
 ![recall](https://img.shields.io/badge/recall-100%25-brightgreen)
 ![FP-rate](https://img.shields.io/badge/FP--rate-0%25%20offline-brightgreen)
@@ -68,7 +68,7 @@ Two independent proofs — one you can run **right now**, one you can **reproduc
 
 | Metric | Result |
 |---|---|
-| Test suite | **121 passing** |
+| Test suite | **123 passing** |
 | Precision · Recall | **100% · 100%** |
 | False-positive rate | **0%** |
 
@@ -151,12 +151,17 @@ pipx install heretic-agent
 
 # 3. (optional) Give it an AI key — this shell only
 $env:NVIDIA_API_KEY = "nvapi-xxxxxxxx"
-#    …or persist across shells:
+#    …or persist across shells (reopen the terminal after):
 setx NVIDIA_API_KEY "nvapi-xxxxxxxx"
 
-# 4. Run it
+# 4. Confirm the setup (does the key actually work?)
+heretic doctor --ping
+
+# 5. Run it
 heretic connect
 ```
+
+> **cmd.exe** (not PowerShell)? Set the key with `set NVIDIA_API_KEY=nvapi-xxxxxxxx` (this shell) or `setx NVIDIA_API_KEY "nvapi-xxxxxxxx"` (persistent). Everything else is identical. On **Windows Terminal / VS Code terminal**, the emoji/box-drawing output renders best — plain `cmd.exe` works too, just less pretty.
 
 **From source instead:**
 ```powershell
@@ -304,7 +309,7 @@ Every command. Run `heretic <command> --help` for the full flag list.
 | `heretic auto` | **One-command** guided scan → HTML report (auto-detects everything) |
 | `heretic scan` | **Full CLI scan** — the main command (see flags below) |
 | `heretic init` | Scaffold starter `roe.yaml` + `accounts.yaml` in the current dir |
-| `heretic doctor` | Preflight — are your model key(s) set and the target reachable? |
+| `heretic doctor` | Preflight — model key(s) set + target reachable (`--ping` actually calls the model to confirm it works) |
 | `heretic bench` | Offline benchmark (no network / no key) — scores precision/recall/FP |
 | `heretic livecheck` | Run a profile vs a real target and grade it against ground truth |
 | `heretic resume` | Resume a saved engagement (`scan --save`) after an interruption |
@@ -655,6 +660,12 @@ Run `heretic doctor -u <url>` to check reachability and keys. If login failed, c
 </details>
 
 <details>
+<summary><b>The AI backend errored or got rate-limited — did I lose my scan?</b></summary>
+
+No. The LLM layer **retries with backoff** on rate-limits / 5xx / transient errors, and if a backend is still down, the run **degrades gracefully**: the deterministic classes (BOLA / BFLA / data-exposure and the mechanical state-changing checks) already completed and are kept, and you get a clear `LLM phase skipped — …` message instead of a crash. Run `heretic doctor --ping` first to confirm your key actually works, or switch to a local Ollama model.
+</details>
+
+<details>
 <summary><b>How do I keep everything private / offline?</b></summary>
 
 Use a local model: `ollama pull qwen2.5:7b`, then run without `--model`. Nothing leaves the host — the LLM calls go to `localhost`.
@@ -663,7 +674,7 @@ Use a local model: `ollama pull qwen2.5:7b`, then run without `--model`. Nothing
 <details>
 <summary><b>How do I prove it actually works?</b></summary>
 
-`heretic bench` (offline: **121 tests**, precision/recall **100%**, FP **0%**) and `heretic livecheck --profile targets/<name> -u <url>` (live, scored against ground truth on **crAPI**, **OWASP Juice Shop**, and **VAmPI** — 0 false positives each). Full breakdown in [Validation](#-validation); reproduction in [`docs/09-LIVE-VALIDATION.md`](docs/09-LIVE-VALIDATION.md).
+`heretic bench` (offline: **123 tests**, precision/recall **100%**, FP **0%**) and `heretic livecheck --profile targets/<name> -u <url>` (live, scored against ground truth on **crAPI**, **OWASP Juice Shop**, and **VAmPI** — 0 false positives each). Full breakdown in [Validation](#-validation); reproduction in [`docs/09-LIVE-VALIDATION.md`](docs/09-LIVE-VALIDATION.md).
 </details>
 
 ---

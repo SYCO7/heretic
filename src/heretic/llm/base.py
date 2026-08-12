@@ -10,6 +10,12 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 
 
+class LLMError(RuntimeError):
+    """A backend call failed after retries (network, rate-limit, bad key, outage).
+    Raised with a human-readable message so callers can degrade gracefully — the
+    scan keeps its mechanical findings instead of crashing on a flaky free-tier API."""
+
+
 class LLM(ABC):
     name: str
     context_tokens: int

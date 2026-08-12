@@ -51,3 +51,23 @@ def preflight(
             checks.append({"name": f"target {url}", "ok": False, "detail": f"unreachable: {e}"})
 
     return checks
+
+
+def model_ping(model_id: str) -> dict[str, Any]:
+    """Actually call the model (a 1-token completion) to confirm the key is valid and
+    the backend responds. Turns 'key is set' into 'key WORKS'. Never raises."""
+    from ..llm import get_backend
+    from ..llm.router import DEFAULT_PROFILE
+
+    real = DEFAULT_PROFILE.get("intent", "nemotron-super") if model_id == "auto" else model_id
+    name = f"model {real} responds"
+    try:
+        llm = get_backend(real)
+    except Exception as e:                                # missing key / unknown id
+        return {"name": name, "ok": False, "detail": str(e)}
+    try:
+        out = llm.complete("Reply with the single word OK.", "OK", tag="ping")
+    except Exception as e:                                # LLMError / network — reported, not raised
+        return {"name": name, "ok": False, "detail": f"{type(e).__name__}: {e}"}
+    ok = bool(out and out.strip())
+    return {"name": name, "ok": ok, "detail": "responded" if ok else "empty response"}

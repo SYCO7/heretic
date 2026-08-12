@@ -253,11 +253,12 @@ def bench(
 def doctor(
     model: str = typer.Option("auto-detect", "--model", help="Backend id; default auto-detects the best available."),
     url: str | None = typer.Option(None, "-u", "--url", help="Target base URL to reachability-check."),
+    ping: bool = typer.Option(False, "--ping", help="Actually call the model (1 token) to confirm the key WORKS, not just that it's set."),
 ) -> None:
     """Preflight: are the model key(s) set and the target reachable? Run before a live scan."""
     import httpx
 
-    from .core.doctor import preflight
+    from .core.doctor import model_ping, preflight
     from .llm.select import resolve as resolve_model
 
     model = resolve_model(model)
@@ -266,6 +267,9 @@ def doctor(
         return httpx.get(u, timeout=5.0, follow_redirects=True).status_code
 
     checks = preflight(model, url, probe=probe if url else None)
+    if ping:
+        console.print("[dim]pinging the model … (uses 1 token)[/]")
+        checks.append(model_ping(model))
     for c in checks:
         mark = "[green]✓[/]" if c["ok"] else "[red]✗[/]"
         console.print(f"{mark} {c['name']} — {c['detail']}")

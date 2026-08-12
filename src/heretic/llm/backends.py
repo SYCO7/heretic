@@ -23,7 +23,7 @@ from typing import Any
 
 import httpx
 
-from .base import LLM
+from .base import LLM, LLMError
 from .scripted import ScriptedLLM
 
 OLLAMA_BASE = os.getenv("OLLAMA_HOST", "http://localhost:11434").rstrip("/") + "/v1"
@@ -110,10 +110,17 @@ class OpenAICompatLLM(LLM):
             body["response_format"] = {"type": "json_object"}
         if self._spec.get("max_tokens"):
             body["max_tokens"] = self._spec["max_tokens"]
-        return _content(self._post(body))
+        try:
+            return _content(self._post(body))
+        except httpx.HTTPError as e:
+            raise LLMError(f"{self.name}: {_brief(e)}") from e
 
     def judge(self, system: str, user: str, *, tag: str = "") -> dict:
-        return _judge_from(self.complete(system, user, json=True, tag=tag))
+        try:
+            raw = self.complete(system, user, json=True, tag=tag)
+        except LLMError as e:                            # a judge outage must not crash the Oracle
+            return {"verdict": False, "why": str(e), "confidence": 0.0}
+        return _judge_from(raw)
 
 
 class GeminiLLM(LLM):
@@ -140,10 +147,22 @@ class GeminiLLM(LLM):
         return resp.text or ""
 
     def judge(self, system: str, user: str, *, tag: str = "") -> dict:
-        return _judge_from(self.complete(system, user, json=True, tag=tag))
+        try:
+            raw = self.complete(system, user, json=True, tag=tag)
+        except Exception as e:                           # Gemini SDK errors — degrade, don't crash
+            return {"verdict": False, "why": f"{self.name}: {e}", "confidence": 0.0}
+        return _judge_from(raw)
 
 
 # ---- response parsing helpers -----------------------------------------------
+
+def _brief(e: Exception) -> str:
+    """A short, human-readable reason from an httpx error (status or exception name)."""
+    resp = getattr(e, "response", None)
+    if resp is not None:
+        return f"HTTP {resp.status_code} after retries"
+    return f"{type(e).__name__} after retries"
+
 
 def _content(data: dict[str, Any]) -> str:
     """The assistant text — falling back to `reasoning_content` when a reasoning

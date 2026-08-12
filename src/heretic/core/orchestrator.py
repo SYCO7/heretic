@@ -17,7 +17,7 @@ import httpx
 from rich.console import Console
 
 from ..config import Config
-from ..llm.base import LLM
+from ..llm.base import LLM, LLMError
 from ..llm.router import DEFAULT_PROFILE, LLMRouter
 from .bola import build_bola_hypotheses
 from .chain import Chainer
@@ -275,21 +275,27 @@ class Orchestrator:
         llm_classes = [k for k in cfg.classes if k in LLM_CLASSES]
         if self.router.any() and llm_classes:
             c.print(f"  [dim]models: {self.router.describe()}[/]")
-            c.rule("[bold]Phase 2[/] intent model (LLM)")
-            model = IntentModeler(self.router.for_role("intent")).build(observation)
-            c.print(f"  {len(model.invariants)} invariants extracted")
-            c.rule("[bold]Phase 3b[/] hypotheses — logic classes (LLM + knowledge)")
-            engine = HypothesisEngine(self.router.for_role("hypothesis"), self.kb, self.memory)
-            hyps = engine.generate(model, observation, llm_classes)
-            hyps = self._dehallucinate(engine, model, observation, llm_classes, hyps, disc_endpoints)
-            c.print(f"  queued {len(hyps)} tests: {', '.join(sorted({h.bug_class for h in hyps})) or 'none'}")
-            c.rule("[bold]Phase 4-5[/] execute + Oracle (assertion / state-delta)")
-            conf, drop, skipped = self._run_hyps(hyps, "logic")
-            findings += conf
-            dropped += drop
-            if skipped:
-                c.print(f"  [yellow]skipped {skipped}[/] state-changing tests — {self._skip_hint()}")
-            self._mark_done(*llm_classes)
+            try:
+                c.rule("[bold]Phase 2[/] intent model (LLM)")
+                model = IntentModeler(self.router.for_role("intent")).build(observation)
+                c.print(f"  {len(model.invariants)} invariants extracted")
+                c.rule("[bold]Phase 3b[/] hypotheses — logic classes (LLM + knowledge)")
+                engine = HypothesisEngine(self.router.for_role("hypothesis"), self.kb, self.memory)
+                hyps = engine.generate(model, observation, llm_classes)
+                hyps = self._dehallucinate(engine, model, observation, llm_classes, hyps, disc_endpoints)
+                c.print(f"  queued {len(hyps)} tests: {', '.join(sorted({h.bug_class for h in hyps})) or 'none'}")
+                c.rule("[bold]Phase 4-5[/] execute + Oracle (assertion / state-delta)")
+                conf, drop, skipped = self._run_hyps(hyps, "logic")
+                findings += conf
+                dropped += drop
+                if skipped:
+                    c.print(f"  [yellow]skipped {skipped}[/] state-changing tests — {self._skip_hint()}")
+                self._mark_done(*llm_classes)
+            except LLMError as e:
+                # a flaky/unreachable free-tier LLM must not sink the whole run — keep the
+                # mechanical findings already confirmed above and tell the operator plainly.
+                c.print(f"  [yellow]LLM phase skipped[/] — {e}. Mechanical findings above are "
+                        f"unaffected; retry, switch --model, or run a local Ollama model.")
 
         # Phase 3i — coupon abuse (mechanical, sequential-redemption, state-changing → live-gated)
         if cfg.coupons and "coupon_abuse" in cfg.classes:

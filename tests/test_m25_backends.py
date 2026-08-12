@@ -7,6 +7,7 @@ from __future__ import annotations
 import httpx
 
 from heretic.llm.backends import OpenAICompatLLM
+from heretic.llm.base import LLMError
 
 _SPEC = {"base_url": "http://llm.local/v1", "model": "m", "ctx": 1000, "key_env": None}
 
@@ -55,13 +56,23 @@ def test_judge_unparseable_defaults_to_not_a_bug():
     assert v["verdict"] is False                            # conservative: never confirm on garbage
 
 
-def test_gives_up_after_max_retries():
+def test_gives_up_with_clear_error():
     def h(req: httpx.Request) -> httpx.Response:
         return httpx.Response(503, json={"error": "down"})
 
     try:
         _llm(h).complete("s", "u")
         raised = False
-    except httpx.HTTPStatusError:
+    except LLMError as e:
         raised = True
+        assert "HTTP 503" in str(e)                         # human-readable, names the model + reason
     assert raised                                           # surfaces the failure, doesn't hang/loop
+
+
+def test_judge_degrades_on_outage():
+    """A dead backend must not crash the Oracle — the judge returns 'not a bug'."""
+    def h(req: httpx.Request) -> httpx.Response:
+        return httpx.Response(500, json={"error": "boom"})
+
+    v = _llm(h).judge("s", "u")
+    assert v["verdict"] is False and v["confidence"] == 0.0
