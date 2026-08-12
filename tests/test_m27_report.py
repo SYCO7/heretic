@@ -21,7 +21,7 @@ _FINDINGS = [
 def test_html_report_is_self_describing():
     h = _as_html(_FINDINGS, target="http://localhost:5001")
     assert "http://localhost:5001" in h                 # target on the report
-    assert "bola ×1" in h and "mass assignment ×1" in h  # per-class summary chips
+    assert "bola (1)" in h and "mass assignment (1)" in h  # per-class summary chips
     assert "1 critical" in h and "1 high" in h           # severity breakdown
     assert "Oracle-proven" in h and "github.com/SYCO7/heretic" in h   # provenance footer
 

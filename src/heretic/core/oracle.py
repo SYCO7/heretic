@@ -199,7 +199,7 @@ class Oracle:
             return Verdict(False, f"{succ}/{reps} redemptions succeeded ≤ {mx} — single-use limit holds")
         m = hyp.meta
         return Verdict(True, "single-use coupon redeemed more than allowed", finding=_finding(
-            hyp, title=f"coupon_abuse — coupon '{m['code']}' redeemed {succ}× (limit {mx}) at {m['url']}",
+            hyp, title=f"coupon_abuse — coupon '{m['code']}' redeemed {succ}x (limit {mx}) at {m['url']}",
             observed=f"the coupon '{m['code']}' was accepted {succ} times across {reps} sequential "
                      f"redemptions (expected ≤{mx}) — the single-use/per-user limit is not enforced "
                      f"server-side, so an attacker stacks the discount indefinitely",

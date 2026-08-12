@@ -194,7 +194,7 @@ def _as_html(findings: list[Finding], target: str = "") -> str:
     cls_counts = Counter(f.bug_class for f in findings)
     sev_summary = " · ".join(f"{sev_counts[s]} {s}"
                              for s in ("critical", "high", "medium", "low", "info") if sev_counts.get(s))
-    chips = "".join(f"<span class='chip'>{esc(c.replace('_', ' '))} ×{cls_counts[c]}</span>"
+    chips = "".join(f"<span class='chip'>{esc(c.replace('_', ' '))} ({cls_counts[c]})</span>"
                     for c in sorted(cls_counts))
     tgt = f"<span class='tgt'>{esc(target)}</span> · " if target else ""
     style = (

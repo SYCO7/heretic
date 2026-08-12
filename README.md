@@ -6,6 +6,7 @@
 
 *The bug class scanners can't touch — and human pentesters still find by hand.*
 
+[![ci](https://github.com/SYCO7/heretic/actions/workflows/ci.yml/badge.svg)](https://github.com/SYCO7/heretic/actions/workflows/ci.yml)
 ![license](https://img.shields.io/badge/license-Apache--2.0-blue)
 ![python](https://img.shields.io/badge/python-3.11%2B-blue)
 ![version](https://img.shields.io/badge/version-0.1.0-blue)
@@ -93,9 +94,27 @@ Two independent proofs — one you can run **right now**, one you can **reproduc
 
 ---
 
+## 🏆 Why HERETIC wins
+
+| | **HERETIC** | Signature scanners<br>(Burp / ZAP / nuclei) | Generic "AI pentest"<br>wrappers |
+|---|:---:|:---:|:---:|
+| Finds **business-logic** bugs (BOLA, price, workflow…) | ✅ core mission | ❌ no signature exists | ⚠️ guesses |
+| **False-positive** rate | **~0%** (Oracle-proven) | high — manual triage | high — LLM hallucination |
+| **Proves** a bug actually happened | ✅ deterministic proof | N/A (pattern match) | ❌ "the model thinks so" |
+| Reproducible **PoC** per finding | ✅ every finding | partial | rare |
+| **Autonomous** attack-surface discovery | ✅ OpenAPI · JS · browser · probe | manual / crawl | varies |
+| Runs with **no API key** | ✅ deterministic classes | ✅ | ❌ needs an LLM |
+| **Chains** primitives → higher impact | ✅ takeover / fraud / exfil | ❌ | ❌ |
+| **CI-ready** (SARIF, fail-on, Action) | ✅ | ✅ | ❌ |
+
+**The one-liner:** signature scanners find bugs that have a *pattern*; the ~70% of critical web bugs that don't — the logic flaws — need *reasoning about intent*. HERETIC reasons with an LLM but **proves with deterministic code**, so it gets the logic coverage of a human without the false positives of an AI toy.
+
+---
+
 ## 📋 Table of contents
 
 - [Validation](#-validation)
+- [Why HERETIC wins](#-why-heretic-wins)
 - [Install](#-install)
 - [Quickstart (60 seconds)](#-quickstart-60-seconds)
 - [The three ways to run it](#-the-three-ways-to-run-it)

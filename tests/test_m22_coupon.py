@@ -23,7 +23,7 @@ def _vuln(req: httpx.Request) -> httpx.Response:
     return httpx.Response(404, json={})
 
 
-def _safe() -> "callable":
+def _safe():
     """A server that enforces single-use: first redemption 200, all later ones 409."""
     seen = {"n": 0}
 

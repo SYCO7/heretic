@@ -92,7 +92,7 @@ def _find_token(obj: Any, prefix: str = "") -> tuple[str, str] | None:
 def _session_cookie(resp: httpx.Response) -> str | None:
     """Name of the session cookie a login response set (excluding CSRF/tracking cookies)."""
     best: str | None = None
-    for name in resp.cookies.keys():
+    for name, _ in resp.cookies.items():
         low = name.lower()
         if any(bad in low for bad in _NOT_SESSION):
             continue
