@@ -9,7 +9,7 @@
 ![license](https://img.shields.io/badge/license-Apache--2.0-blue)
 ![python](https://img.shields.io/badge/python-3.11%2B-blue)
 ![version](https://img.shields.io/badge/version-0.1.0-blue)
-![tests](https://img.shields.io/badge/tests-124%20passing-brightgreen)
+![tests](https://img.shields.io/badge/tests-126%20passing-brightgreen)
 ![precision](https://img.shields.io/badge/precision-100%25-brightgreen)
 ![recall](https://img.shields.io/badge/recall-100%25-brightgreen)
 ![FP-rate](https://img.shields.io/badge/FP--rate-0%25%20offline-brightgreen)
@@ -36,6 +36,13 @@ heretic scan -u https://target.local --roe roe.yaml --accounts accounts.yaml
 ---
 
 ## 👀 See it work — real output, live OWASP Juice Shop
+
+<p align="center">
+  <a href="docs/demo/heretic-demo.svg">
+    <img src="docs/demo/heretic-demo.svg" alt="HERETIC live demo — offline benchmark, then live Juice Shop + VAmPI, 0 false positives" width="100%">
+  </a>
+  <br><em>Real recording — offline FP-gate, then live Juice Shop and VAmPI. Reproduce with <a href="scripts/demo.sh"><code>scripts/demo.sh</code></a> · replay the raw cast with <code>asciinema play docs/demo/heretic-demo.cast</code>.</em>
+</p>
 
 Not a mock-up. This is HERETIC against a live `bkimminich/juice-shop` container — model auto-detected, basket id harvested from the login response, attack surface discovered from the SPA's JS bundle.
 
@@ -68,7 +75,7 @@ Two independent proofs — one you can run **right now**, one you can **reproduc
 
 | Metric | Result |
 |---|---|
-| Test suite | **124 passing** |
+| Test suite | **126 passing** |
 | Precision · Recall | **100% · 100%** |
 | False-positive rate | **0%** |
 
@@ -674,7 +681,7 @@ Use a local model: `ollama pull qwen2.5:7b`, then run without `--model`. Nothing
 <details>
 <summary><b>How do I prove it actually works?</b></summary>
 
-`heretic bench` (offline: **124 tests**, precision/recall **100%**, FP **0%**) and `heretic livecheck --profile targets/<name> -u <url>` (live, scored against ground truth on **crAPI**, **OWASP Juice Shop**, and **VAmPI** — 0 false positives each). Full breakdown in [Validation](#-validation); reproduction in [`docs/09-LIVE-VALIDATION.md`](docs/09-LIVE-VALIDATION.md).
+`heretic bench` (offline: **126 tests**, precision/recall **100%**, FP **0%**) and `heretic livecheck --profile targets/<name> -u <url>` (live, scored against ground truth on **crAPI**, **OWASP Juice Shop**, and **VAmPI** — 0 false positives each). Full breakdown in [Validation](#-validation); reproduction in [`docs/09-LIVE-VALIDATION.md`](docs/09-LIVE-VALIDATION.md).
 </details>
 
 ---
