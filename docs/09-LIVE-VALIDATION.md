@@ -52,6 +52,32 @@ CHAIN   Account takeover · Financial fraud · Bulk data exfiltration
 6 business-logic classes + 3 chains, every one Oracle-proven at 100% confidence. The
 18 "dropped" are candidates the Oracle refused — that gap is the ~0-FP moat.
 
+## Second target — OWASP VAmPI (publishes OpenAPI, so zero endpoint config)
+
+```bash
+docker run -d -p 5001:5000 --name vampi erev0s/vampi
+curl -s http://localhost:5001/createdb                 # seed demo users (name1..) + books
+# a book per user so the BOLA has data:
+#   POST /users/v1/login {username,password} -> auth_token
+#   POST /books/v1 {book_title,secret}  (Authorization: Bearer <token>) for name1 and name2
+cp targets/vampi/accounts.yaml.example targets/vampi/accounts.yaml     # creds: name1/pass1, name2/pass2
+
+heretic scan -u http://localhost:5001 --roe targets/vampi/roe.yaml \
+  --accounts targets/vampi/accounts.yaml \
+  --classes bola,excessive_data_exposure,bfla --discover --chain
+```
+
+Confirmed — matches `targets/vampi/ground_truth.yaml` exactly, **0 false positives**:
+
+```
+CONFIRM bola ×2                 — userB↔userA book cross-read (ownership from the leaky list's `user` field)
+CONFIRM excessive_data_exposure — /users/v1 leaks email to unauthenticated users
+CONFIRM excessive_data_exposure — /users/v1/_debug leaks email + password to unauthenticated users
+CONFIRM bfla                    — /users/v1/_debug reachable without auth
+CHAIN   Bulk data exfiltration
+──────────────── 6 confirmed · 10 dropped (false positives) ────────────────
+```
+
 ## 1. Stand up a target (authorized, local)
 
 ```bash
