@@ -14,7 +14,7 @@ from .intent_model import IntentModel
 from .models import Hypothesis
 
 # classes generated here (BOLA is handled mechanically in bola.py)
-LLM_CLASSES = {"price_tamper", "workflow_bypass", "mass_assignment", "coupon_abuse"}
+LLM_CLASSES = {"price_tamper", "workflow_bypass", "mass_assignment", "coupon_abuse", "auth_flow"}
 
 SYSTEM = """You are a penetration tester. Given business-logic INVARIANTS and the
 observed ENDPOINTS of an app, produce concrete tests that try to VIOLATE each
@@ -22,7 +22,7 @@ invariant. Output STRICT JSON: a list of tests, each:
 
 {
   "invariant_id": "INV-2",
-  "bug_class": "price_tamper|mass_assignment|workflow_bypass|coupon_abuse",
+  "bug_class": "price_tamper|mass_assignment|workflow_bypass|coupon_abuse|auth_flow",
   "description": "short human description",
   "request_sequence": [
     {"method": "POST", "url": "/api/checkout", "as": "userA", "body": {"item_id": "i1", "price": 1}}

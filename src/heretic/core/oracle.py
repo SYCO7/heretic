@@ -38,6 +38,7 @@ _SEVERITY = {
     "mass_assignment": Severity.CRITICAL, "workflow_bypass": Severity.HIGH,
     "coupon_abuse": Severity.MEDIUM, "race_condition": Severity.HIGH,
     "excessive_data_exposure": Severity.HIGH, "bfla": Severity.HIGH,
+    "auth_flow": Severity.HIGH,
 }
 _REMEDIATION = {
     "price_tamper": "Compute price/total server-side from the catalog; never trust client-supplied amounts.",
@@ -49,6 +50,8 @@ _REMEDIATION = {
                                "server-side and never return other users' rows.",
     "bfla": "Enforce role checks server-side on every administrative endpoint; deny by default and "
             "verify the caller's privilege, not just that they are authenticated.",
+    "auth_flow": "Bind reset/verification tokens to the requesting account and enforce every step of "
+                 "the auth sequence server-side; never let a later step be reached without its prerequisite.",
 }
 
 _JUDGE_SYS = (
@@ -112,6 +115,8 @@ class Oracle:
             return self._verify_pricetamper(hyp, result)
         if hyp.invariant_id == "WORKFLOW:finalize_without_prereq":
             return self._verify_workflow(hyp, result)
+        if (hyp.meta or {}).get("coupon"):
+            return self._verify_coupon(hyp, result)
         oracle = (hyp.meta or {}).get("oracle")
         if oracle == "invariant_assertion":
             return self._verify_assertion(hyp, result)
@@ -184,6 +189,23 @@ class Oracle:
                    "guest_status": (guest or {}).get("status"),
                    "poc": hyp.request_sequence, "reproduced": True},
         ))
+
+    # ---- coupon abuse: sequential redemption count --------------------
+
+    def _verify_coupon(self, hyp: Hypothesis, result: TestResult) -> Verdict:
+        r = result.responses
+        succ, reps, mx = r["success_count"], r["reps"], r["max_uses"]
+        if succ <= mx:
+            return Verdict(False, f"{succ}/{reps} redemptions succeeded ≤ {mx} — single-use limit holds")
+        m = hyp.meta
+        return Verdict(True, "single-use coupon redeemed more than allowed", finding=_finding(
+            hyp, title=f"coupon_abuse — coupon '{m['code']}' redeemed {succ}× (limit {mx}) at {m['url']}",
+            observed=f"the coupon '{m['code']}' was accepted {succ} times across {reps} sequential "
+                     f"redemptions (expected ≤{mx}) — the single-use/per-user limit is not enforced "
+                     f"server-side, so an attacker stacks the discount indefinitely",
+            proof={"oracle": "sequential_redemption_count", "code": m["code"], "url": m["url"],
+                   "success_count": succ, "attempts": reps, "max_uses": mx,
+                   "poc": [{"method": m["method"], "url": m["url"], "body": m.get("body")}]}))
 
     # ---- race / TOCTOU: parallel success count ------------------------
 

@@ -29,7 +29,8 @@ from .oracle import Oracle
 from .race import build_race_hypotheses
 from .session_mgr import SessionManager
 
-STATE_CHANGING = {"price_tamper", "workflow_bypass", "mass_assignment", "coupon_abuse", "race_condition"}
+STATE_CHANGING = {"price_tamper", "workflow_bypass", "mass_assignment", "coupon_abuse",
+                  "race_condition", "auth_flow"}
 
 
 def _may_fire(cfg: Config, bug_class: str) -> bool:
@@ -289,6 +290,19 @@ class Orchestrator:
             if skipped:
                 c.print(f"  [yellow]skipped {skipped}[/] state-changing tests — {self._skip_hint()}")
             self._mark_done(*llm_classes)
+
+        # Phase 3i — coupon abuse (mechanical, sequential-redemption, state-changing → live-gated)
+        if cfg.coupons and "coupon_abuse" in cfg.classes:
+            from .coupon import build_coupon_hypotheses
+            c.rule("[bold]Phase 3i[/] hypotheses — coupon abuse (sequential redemption)")
+            coup_hyps = build_coupon_hypotheses(cfg)
+            c.print(f"  queued {len(coup_hyps)} coupon tests")
+            conf, drop, skipped = self._run_hyps(coup_hyps, "coupon")
+            findings += conf
+            dropped += drop
+            if skipped:
+                c.print(f"  [yellow]skipped {skipped}[/] coupon tests — {self._skip_hint()}")
+            self._mark_done("coupon_abuse")
 
         # Phase 3c — race / TOCTOU (mechanical, parallel-fire)
         if cfg.races and "race_condition" in cfg.classes:

@@ -33,8 +33,8 @@ def mutations(hyp: Hypothesis, limit: int) -> list[Hypothesis]:
         out = _price(hyp)
     elif hyp.bug_class == "mass_assignment":
         out = _mass(hyp)
-    elif hyp.bug_class == "workflow_bypass":
-        out = _workflow(hyp)
+    elif hyp.bug_class in ("workflow_bypass", "auth_flow"):
+        out = _workflow(hyp)                          # skip/reorder a prerequisite step (verify, pay, …)
     elif hyp.bug_class == "coupon_abuse":
         out = _coupon(hyp)
     else:

@@ -8,7 +8,7 @@
 
 ![license](https://img.shields.io/badge/license-Apache--2.0-blue)
 ![python](https://img.shields.io/badge/python-3.11%2B-blue)
-![tests](https://img.shields.io/badge/tests-104%20passing-brightgreen)
+![tests](https://img.shields.io/badge/tests-112%20passing-brightgreen)
 ![false--positive rate](https://img.shields.io/badge/FP--rate-~0%25-brightgreen)
 ![status](https://img.shields.io/badge/status-beta-orange)
 
@@ -329,6 +329,17 @@ races:
     parallel: 10
     expect_max_success: 1
 
+# Coupon abuse — redeem a single-use code repeatedly IN SERIES (not concurrent;
+# that's `races:`). Confirmed if the server accepts it more than `max_uses` times:
+coupons:
+  - name:       welcome10
+    url:        "/api/coupon/apply"
+    code:       "WELCOME10"
+    code_field: "code"                      # body field carrying the code
+    as_role:    userA
+    max_uses:   1                           # single-use
+    success_field: "applied"                # optional: dotted field marking a redemption
+
 # Per-phase model routing (only used with `--model auto`):
 models:
   intent:     nemotron-super
@@ -376,11 +387,13 @@ roles:
 | **Mass assignment** | `mass_assignment` | Registration accepting a privileged field | Reflected-field assertion | Yes ⚠️ |
 | **Workflow bypass** | `workflow_bypass` | Finalizing without a prerequisite step | State-delta judge (+ refuter panel) | Yes ⚠️ |
 | **Race / TOCTOU** | `race_condition` | Non-atomic check-then-act (double-spend) | Parallel-fire success count | Yes ⚠️ |
-| *Coupon abuse* | `coupon_abuse` | *Reusing single-use limits (experimental, LLM-driven)* | State-delta | Yes ⚠️ |
-| *Auth-flow abuse* | `auth_flow` | *Auth sequence violations (experimental)* | — | — |
+| **Coupon abuse** | `coupon_abuse` | Redeeming a single-use coupon past its limit | Sequential-redemption count | Yes ⚠️ |
+| **Auth-flow abuse** | `auth_flow` | Reset-token binding / skipping a verification step | Invariant assertion / state-delta judge | Yes ⚠️ |
 
 **✅ read-only classes** are safe to run against production — no LLM key required, no state changed.
 **⚠️ state-changing classes** are **gated**: they only fire in `--mode live` **and** when listed in the RoE's `destructive_allowed`. In `dry-run` they're skipped and the tool tells you why.
+
+> `coupon_abuse` runs deterministically from a `coupons:` RoE block (see below); `auth_flow` is LLM-driven (needs a model). The rest of the state-changing set is fully mechanical.
 
 ---
 

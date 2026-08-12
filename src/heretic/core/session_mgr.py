@@ -282,7 +282,28 @@ class SessionManager:
             return self._execute_pricetamper(hyp)
         if hyp.invariant_id == "WORKFLOW:finalize_without_prereq":
             return self._execute_workflow(hyp)
+        if hyp.meta.get("coupon"):
+            return self._execute_coupon(hyp)
         return self._execute_sequence(hyp)
+
+    def _execute_coupon(self, hyp: Hypothesis) -> TestResult:
+        """Redeem the same coupon code `reps` times in series and count how many succeeded.
+        A success is `success_status` (and, if given, a truthy `success_field`)."""
+        m = hyp.meta
+        role = m["as"] if m["as"] in self.clients else next(
+            (r for r in self.clients if r != "guest"), "guest")
+        snaps: list[dict[str, Any]] = []
+        success = 0
+        for _ in range(m["reps"]):
+            snap = self._send(role, m["method"], m["url"], m.get("body"))
+            ok = snap["status"] == m["success_status"]
+            if ok and m.get("success_field"):
+                ok = bool(_dotted(snap.get("json"), m["success_field"]))
+            success += 1 if ok else 0
+            snaps.append(snap)
+        return TestResult(hypothesis=hyp, responses={
+            "results": snaps, "success_count": success,
+            "reps": m["reps"], "max_uses": m["max_uses"]})
 
     def _execute_workflow(self, hyp: Hypothesis) -> TestResult:
         """Try to finalize an order without paying (checkout returns a confirmation), or to set

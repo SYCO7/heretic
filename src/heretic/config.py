@@ -78,6 +78,24 @@ class RaceSpec(BaseModel):
     success_field: str | None = None              # optional dotted field that marks success
 
 
+class CouponSpec(BaseModel):
+    """A coupon-abuse probe: redeem the SAME single-use code `max_uses`+1 times
+    SEQUENTIALLY and confirm the server does not accept it more than `max_uses`
+    times (single-use / per-user limit enforced server-side). Sibling to RaceSpec —
+    RaceSpec fires concurrently (TOCTOU), this one redeems in series (missing
+    idempotency / reuse). State-changing → live-gated."""
+    name: str
+    url: str                                         # the coupon-apply / redeem endpoint
+    code: str                                        # the single-use coupon code
+    method: str = "POST"
+    code_field: str = "code"                         # body field carrying the code
+    body: dict[str, Any] | None = None            # extra body merged with the code field
+    as_role: str = "userA"
+    max_uses: int = 1                                # allowed successful redemptions (single-use = 1)
+    success_status: int = 200
+    success_field: str | None = None              # optional dotted field that marks a redemption
+
+
 # ---- scope + config ----------------------------------------------------
 
 class Scope(BaseModel):
@@ -146,6 +164,7 @@ class Config(BaseModel):
     objects: list[ObjectSpec] = Field(default_factory=list)
     login_objects: list[LoginObjectSpec] = Field(default_factory=list)
     races: list[RaceSpec] = Field(default_factory=list)
+    coupons: list[CouponSpec] = Field(default_factory=list)
     chain: bool = False                              # compose confirmed primitives into higher-impact chains
     iterate: int = 0                                 # feedback loop: mutate+retry a failed logic test up to N times
     discovery: DiscoverySpec = Field(default_factory=DiscoverySpec)   # autonomous endpoint discovery
@@ -212,6 +231,7 @@ def load_config(
     objects = [ObjectSpec(**o) for o in gate.get("objects", [])]
     login_objects = [LoginObjectSpec(**o) for o in gate.get("login_objects", [])]
     races = [RaceSpec(**r) for r in gate.get("races", [])]
+    coupons = [CouponSpec(**c) for c in gate.get("coupons", [])]
 
     discovery = DiscoverySpec(**(gate.get("discovery") or {}))
     # auto-enable discovery when the operator gave no objects, or forced it via --discover
@@ -236,6 +256,7 @@ def load_config(
         objects=objects,
         login_objects=login_objects,
         races=races,
+        coupons=coupons,
         chain=(chain if chain is not None else gate.get("chain", False)),
         discovery=discovery,
         models=gate.get("models", {}),

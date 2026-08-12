@@ -58,3 +58,15 @@ objects:
     item_url:  "/workshop/api/mechanic/mechanic_report?report_id={id}"
     id_field:  "id"
     list_path: "reports"
+
+# Coupon abuse (deterministic) — redeem a single-use code repeatedly IN SERIES and
+# confirm the server accepts it no more than `max_uses` times. State-changing →
+# only fires in `mode: live` with the class authorized in `destructive_allowed`.
+# coupons:
+#   - name:       welcome10
+#     url:        "/api/coupon/apply"
+#     code:       "WELCOME10"
+#     code_field: "code"          # body field carrying the code
+#     as_role:    userA
+#     max_uses:   1               # single-use
+#     success_field: "applied"    # optional dotted field marking a successful redemption
