@@ -8,8 +8,12 @@
 
 ![license](https://img.shields.io/badge/license-Apache--2.0-blue)
 ![python](https://img.shields.io/badge/python-3.11%2B-blue)
+![version](https://img.shields.io/badge/version-0.1.0-blue)
 ![tests](https://img.shields.io/badge/tests-121%20passing-brightgreen)
-![false--positive rate](https://img.shields.io/badge/FP--rate-~0%25-brightgreen)
+![precision](https://img.shields.io/badge/precision-100%25-brightgreen)
+![recall](https://img.shields.io/badge/recall-100%25-brightgreen)
+![FP-rate](https://img.shields.io/badge/FP--rate-0%25%20offline-brightgreen)
+![classes](https://img.shields.io/badge/business--logic%20classes-9-blueviolet)
 ![status](https://img.shields.io/badge/status-beta-orange)
 
 [**Quickstart**](#-quickstart-60-seconds) · [**Install**](#-install) · [**Commands**](#-command-reference) · [**Config**](#-configuration) · [**Bug classes**](#-what-it-finds) · [**How it works**](#-how-it-works) · [**Safety**](#-safety--legal) · [**FAQ**](#-faq)
@@ -56,8 +60,35 @@ Phase 3b hypotheses — logic classes (LLM + knowledge)
 
 ---
 
+## ✅ Validation
+
+Two independent proofs — one you can run **right now**, one you can **reproduce** against real targets.
+
+**Offline — every build, no key, no network** (`heretic bench`, wired into CI):
+
+| Metric | Result |
+|---|---|
+| Test suite | **121 passing** |
+| Precision · Recall | **100% · 100%** |
+| False-positive rate | **0%** |
+
+**Live — reproducible with `heretic livecheck`** (the read-only classes need no LLM key):
+
+| Target | BOLA mechanism | Result |
+|---|---|---|
+| **crAPI** | autonomous discovery → list→detail probing → `/vehicle/{id}/location` | confirmed · **0 FP** |
+| **OWASP Juice Shop** | login-response basket-id harvest → `/rest/basket/{id}`, plus a 5-class sweep (data-exposure · BFLA · mass-assignment · price-tamper · workflow-bypass) | 7 confirmed · **0 FP** |
+| **VAmPI** | owner-aware harvest of a leaky list → `/books/v1/{title}` | confirmed · **0 FP** |
+
+**Coverage today:** **9** business-logic classes — 7 fully mechanical + `coupon_abuse` (deterministic) + `auth_flow` (LLM-driven). Login auto-detection spans **JSON/JWT · session-cookie · CSRF-guarded · form-encoded** flows.
+
+> Offline metrics are checked on every commit. The live numbers reproduce from the profiles in [`targets/`](targets) — see [`docs/09-LIVE-VALIDATION.md`](docs/09-LIVE-VALIDATION.md). Real-world FP on hardened production apps is not yet independently measured; `~0%` reflects the three deliberately-vulnerable targets above.
+
+---
+
 ## 📋 Table of contents
 
+- [Validation](#-validation)
 - [Install](#-install)
 - [Quickstart (60 seconds)](#-quickstart-60-seconds)
 - [The three ways to run it](#-the-three-ways-to-run-it)
@@ -632,7 +663,7 @@ Use a local model: `ollama pull qwen2.5:7b`, then run without `--model`. Nothing
 <details>
 <summary><b>How do I prove it actually works?</b></summary>
 
-`heretic bench` (offline) and `heretic livecheck --profile targets/<name> -u <url>` (live, scored against ground truth). Validated on **crAPI**, **OWASP Juice Shop**, and **VAmPI** — 3 different BOLA mechanisms, 0 false positives each. See [`docs/09-LIVE-VALIDATION.md`](docs/09-LIVE-VALIDATION.md).
+`heretic bench` (offline: **121 tests**, precision/recall **100%**, FP **0%**) and `heretic livecheck --profile targets/<name> -u <url>` (live, scored against ground truth on **crAPI**, **OWASP Juice Shop**, and **VAmPI** — 0 false positives each). Full breakdown in [Validation](#-validation); reproduction in [`docs/09-LIVE-VALIDATION.md`](docs/09-LIVE-VALIDATION.md).
 </details>
 
 ---
