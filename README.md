@@ -717,6 +717,7 @@ Use a local model: `ollama pull qwen2.5:7b`, then run without `--model`. Nothing
 | 6 | [`docs/06-USAGE.md`](docs/06-USAGE.md) | Deeper usage guide |
 | 7 | [`docs/07-GUARDRAILS.md`](docs/07-GUARDRAILS.md) | Scope, safety, legal |
 | 9 | [`docs/09-LIVE-VALIDATION.md`](docs/09-LIVE-VALIDATION.md) | Reproduce the live runs, score recall/FP |
+| 11 | [`docs/11-REAL-WORLD.md`](docs/11-REAL-WORLD.md) | **Run on an authorized real target** — get the real-world number |
 | ★ | [`docs/CI.md`](docs/CI.md) | Run in CI — SARIF + GitHub Action |
 
 ---

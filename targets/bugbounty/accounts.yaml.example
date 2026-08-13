@@ -1,0 +1,18 @@
+# Two accounts YOU registered on the program — never real users' data.
+# Copy to accounts.yaml (gitignored) and fill in. Or skip this and run
+# `heretic connect` to auto-detect the login endpoint + token field.
+#
+# Tip: use plus-addressing (you+a@mail.com / you+b@mail.com) so both are yours.
+
+login:
+  url:         "/api/auth/login"          # `heretic connect` finds this for you
+  method:      "POST"
+  token_field: "token"                    # json field, dotted path, or "cookie:NAME"
+  auth_header: "Authorization: Bearer {token}"
+
+roles:
+  - { name: guest, creds: null }                                            # unauth baseline
+  - { name: userA, creds: { email: "you+a@yourmail.com", password: "..." } }
+  - { name: userB, creds: { email: "you+b@yourmail.com", password: "..." } }  # the "victim" for BOLA
+  # OTP / MFA / SSO login? Paste a bearer token instead of creds:
+  #   - { name: userA, token: "eyJhbGciOi..." }

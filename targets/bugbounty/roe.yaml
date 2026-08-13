@@ -1,0 +1,44 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# BUG-BOUNTY ENGAGEMENT TEMPLATE — copy this dir, edit for YOUR program.
+#
+#   READ THE PROGRAM BRIEF FIRST. Only test in-scope assets. Honor the
+#   out-of-scope list, the rate limits, and any required attribution header.
+#   This template ships with the SAFE, read-only class set so a first pass
+#   changes no state on someone else's production.
+# ─────────────────────────────────────────────────────────────────────────────
+
+engagement:    "<program name> — bug bounty"
+authorized_by: "<your researcher handle / email registered on the program>"
+signed:        true                       # you attest you are authorized to test this scope
+
+scope:
+  allow:                                  # ONLY the program's in-scope hosts (globs + CIDR ok)
+    - "*.example.com"
+    - "api.example.com"
+  exclude:                                # mirror the program's out-of-scope list
+    - "status.example.com"
+    - "*/admin/*"
+    - "*/password-reset*"
+
+mode:          dry-run                     # read-only. NEVER go live on a third party's prod.
+max_rate_rps:  2                           # be gentle — respect the program's rate limits
+max_parallel:  2
+destructive_allowed: []                    # keep empty on live programs (no state-changing tests)
+chain:         true
+
+# Program attribution — MANY programs REQUIRE a header identifying your traffic.
+# Set the EXACT header the brief specifies (this is applied to every request).
+headers:
+  X-Bug-Bounty: "<your-handle>"           # e.g. your HackerOne / Bugcrowd username
+  # X-HackerOne-Research: "<handle>"
+  # User-Agent: "<handle> via HERETIC (business-logic testing)"
+
+# Safe, low-noise first pass — read-only, no LLM key needed, never changes state:
+classes: [bola, bfla, excessive_data_exposure]
+
+# No `objects:` block → HERETIC autonomously discovers the surface (OpenAPI / JS /
+# probing) and infers BOLA targets. Or run `heretic connect` to auto-detect login.
+#
+# To ALSO test the state-changing classes (price/mass/workflow/coupon/race), do it
+# ONLY on an instance you own or have written permission to mutate (e.g. staging):
+#   mode: live   +   destructive_allowed: ["*"]   +   classes: [ ...all... ]
