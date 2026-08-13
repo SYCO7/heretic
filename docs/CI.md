@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: SYCO7/heretic@v0.1.0
+      - uses: SYCO7/heretic@v1.0.0
         with:
           url: https://staging.example.com
           roe: security/roe.yaml

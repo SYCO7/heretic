@@ -28,10 +28,10 @@ The shippable target profiles (`targets/*/roe.yaml`, `ground_truth.yaml`, `accou
 the real demo cast (`docs/demo/heretic-demo.cast`) DO get committed.
 
 ```bash
-git commit -m "HERETIC v0.1.0 — autonomous business-logic vuln agent"
+git commit -m "HERETIC v1.0.0 — autonomous business-logic vuln agent"
 gh repo create heretic --public --source=. --push
-git tag v0.1.0 && git push --tags
-gh release create v0.1.0 --title "v0.1.0" --notes "First public release. Confirms crAPI + Juice Shop BOLA/IDOR live, 0 FP."
+git tag v1.0.0 && git push --tags
+gh release create v1.0.0 --title "v1.0.0" --notes "First public release. Confirms crAPI + Juice Shop BOLA/IDOR live, 0 FP."
 ```
 
 ## 2. PyPI **(you run)** — so `pip install` works
@@ -40,7 +40,7 @@ Confirm the name is free on https://pypi.org/project/heretic-agent/ (change `nam
 if taken; the CLI command stays `heretic` regardless).
 
 ```bash
-python -m build                                   # dist/heretic_agent-0.1.0.{whl,tar.gz}
+python -m build                                   # dist/heretic_agent-1.0.0.{whl,tar.gz}
 python -m twine upload dist/*                      # needs your PyPI API token
 pip install heretic-agent && heretic version       # smoke test the published package
 ```

@@ -6,4 +6,4 @@ systematically tries to violate the invariants it assumes but never enforces.
 See docs/ for the full design. The moat is the Oracle (core/oracle.py).
 """
 
-__version__ = "0.1.0"
+__version__ = "1.0.0"

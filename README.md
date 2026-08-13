@@ -9,13 +9,13 @@
 [![ci](https://github.com/SYCO7/heretic/actions/workflows/ci.yml/badge.svg)](https://github.com/SYCO7/heretic/actions/workflows/ci.yml)
 ![license](https://img.shields.io/badge/license-Apache--2.0-blue)
 ![python](https://img.shields.io/badge/python-3.11%2B-blue)
-![version](https://img.shields.io/badge/version-0.1.0-blue)
+![release](https://img.shields.io/github/v/release/SYCO7/heretic?label=release&color=blue)
 ![tests](https://img.shields.io/badge/tests-126%20passing-brightgreen)
 ![precision](https://img.shields.io/badge/precision-100%25-brightgreen)
 ![recall](https://img.shields.io/badge/recall-100%25-brightgreen)
 ![FP-rate](https://img.shields.io/badge/FP--rate-0%25%20offline-brightgreen)
 ![classes](https://img.shields.io/badge/business--logic%20classes-9-blueviolet)
-![status](https://img.shields.io/badge/status-beta-orange)
+![status](https://img.shields.io/badge/status-v1.0.0%20stable-brightgreen)
 
 [**Quickstart**](#-quickstart-60-seconds) · [**Install**](#-install) · [**Commands**](#-command-reference) · [**Config**](#-configuration) · [**Bug classes**](#-what-it-finds) · [**How it works**](#-how-it-works) · [**Safety**](#-safety--legal) · [**FAQ**](#-faq)
 
@@ -637,7 +637,7 @@ Because every finding is Oracle-proven (~0 FP), a failing build is a **real bug,
 
 ```yaml
 # .github/workflows/heretic.yml
-- uses: SYCO7/heretic@v0.1.0
+- uses: SYCO7/heretic@v1.0.0
   with:
     url: https://staging.example.com
     roe: roe.yaml
