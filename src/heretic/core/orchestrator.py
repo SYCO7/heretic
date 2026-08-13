@@ -206,6 +206,11 @@ class Orchestrator:
             observation.endpoints.append({"method": ep["method"], "path": ep["path"],
                                           "role": "discovery", "status": None, "sample": ""})
 
+        # OPD — build the ownership-token map so BOLA/exposure findings carry
+        # provenance evidence (HERETIC's Ownership Provenance Differential; see provenance.py)
+        from .provenance import OwnershipMap
+        self.oracle.omap = OwnershipMap.build(self.sessions.identities, owned)
+
         # Phase 3a — BOLA (mechanical, read-only)
         if "bola" in cfg.classes:
             c.rule("[bold]Phase 3a[/] hypotheses — BOLA/IDOR (mechanical)")

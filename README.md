@@ -10,7 +10,7 @@
 ![license](https://img.shields.io/badge/license-Apache--2.0-blue)
 ![python](https://img.shields.io/badge/python-3.11%2B-blue)
 ![release](https://img.shields.io/github/v/release/SYCO7/heretic?label=release&color=blue)
-![tests](https://img.shields.io/badge/tests-126%20passing-brightgreen)
+![tests](https://img.shields.io/badge/tests-130%20passing-brightgreen)
 ![precision](https://img.shields.io/badge/precision-100%25-brightgreen)
 ![recall](https://img.shields.io/badge/recall-100%25-brightgreen)
 ![FP-rate](https://img.shields.io/badge/FP--rate-0%25%20offline-brightgreen)
@@ -76,7 +76,7 @@ Two independent proofs — one you can run **right now**, one you can **reproduc
 
 | Metric | Result |
 |---|---|
-| Test suite | **126 passing** |
+| Test suite | **130 passing** |
 | Precision · Recall | **100% · 100%** |
 | False-positive rate | **0%** |
 
@@ -613,6 +613,8 @@ flowchart LR
 - **Oracle** is the moat: a business-logic bug throws no error and returns `200 OK`, so the Oracle *proves* an invariant was violated — deterministically where possible, and with an adversarial 3-skeptic refuter panel for the LLM-judged classes. **An LLM can never veto a deterministic proof.**
 - **Chain** composes confirmed primitives (e.g. two BOLA reads → bulk exfiltration).
 
+> 🧬 **HERETIC's own algorithm — Ownership Provenance Differential (OPD).** Instead of trusting a labeled `owner` field, OPD tracks the concrete *ownership tokens* that provably belong to each identity and scores every response's **provenance purity** = `own ÷ (own + foreign)`. Purity < 1 means another identity's data is in the response — a leak — and the same number unifies BOLA (item) and data-exposure (list) while catching leaks that have no `owner` field to look at. It's deterministic and *additive* (it enriches an already-confirmed finding, never invents one), so it strengthens the evidence without touching the false-positive rate. See [`docs/12-ALGORITHM-OPD.md`](docs/12-ALGORITHM-OPD.md).
+
 Full detail: [`docs/01-ARCHITECTURE.md`](docs/01-ARCHITECTURE.md) · [`docs/03-ORACLE.md`](docs/03-ORACLE.md) · [`docs/02-WORKFLOWS.md`](docs/02-WORKFLOWS.md).
 
 ---
@@ -700,7 +702,7 @@ Use a local model: `ollama pull qwen2.5:7b`, then run without `--model`. Nothing
 <details>
 <summary><b>How do I prove it actually works?</b></summary>
 
-`heretic bench` (offline: **126 tests**, precision/recall **100%**, FP **0%**) and `heretic livecheck --profile targets/<name> -u <url>` (live, scored against ground truth on **crAPI**, **OWASP Juice Shop**, and **VAmPI** — 0 false positives each). Full breakdown in [Validation](#-validation); reproduction in [`docs/09-LIVE-VALIDATION.md`](docs/09-LIVE-VALIDATION.md).
+`heretic bench` (offline: **130 tests**, precision/recall **100%**, FP **0%**) and `heretic livecheck --profile targets/<name> -u <url>` (live, scored against ground truth on **crAPI**, **OWASP Juice Shop**, and **VAmPI** — 0 false positives each). Full breakdown in [Validation](#-validation); reproduction in [`docs/09-LIVE-VALIDATION.md`](docs/09-LIVE-VALIDATION.md).
 </details>
 
 ---
@@ -718,6 +720,7 @@ Use a local model: `ollama pull qwen2.5:7b`, then run without `--model`. Nothing
 | 7 | [`docs/07-GUARDRAILS.md`](docs/07-GUARDRAILS.md) | Scope, safety, legal |
 | 9 | [`docs/09-LIVE-VALIDATION.md`](docs/09-LIVE-VALIDATION.md) | Reproduce the live runs, score recall/FP |
 | 11 | [`docs/11-REAL-WORLD.md`](docs/11-REAL-WORLD.md) | **Run on an authorized real target** — get the real-world number |
+| 12 | [`docs/12-ALGORITHM-OPD.md`](docs/12-ALGORITHM-OPD.md) | **OPD — HERETIC's own algorithm** (ownership provenance differential) |
 | ★ | [`docs/CI.md`](docs/CI.md) | Run in CI — SARIF + GitHub Action |
 
 ---

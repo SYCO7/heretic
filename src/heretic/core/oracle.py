@@ -82,9 +82,19 @@ class Verdict:
 
 
 class Oracle:
-    def __init__(self, judge_llm: Any = None, refute_llm: Any = None) -> None:
+    def __init__(self, judge_llm: Any = None, refute_llm: Any = None, omap: Any = None) -> None:
         self.judge_llm = judge_llm                     # Oracle 3 state-delta judge
         self.refute_llm = refute_llm if refute_llm is not None else judge_llm  # refuter panel
+        self.omap = omap                               # Ownership Provenance Differential (OPD) map
+
+    def _opd(self, finding: Finding, payload: Any, viewer: str) -> Finding:
+        """Attach Ownership Provenance Differential evidence to a confirmed finding
+        (see provenance.py). Additive — never changes whether a finding is confirmed."""
+        from .provenance import opd_proof
+        ev = opd_proof(payload, self.omap, viewer)
+        if ev:
+            finding.proof["provenance"] = ev
+        return finding
 
     def verify(
         self,
@@ -179,7 +189,7 @@ class Oracle:
             return Verdict(False, "public resource (guest sees identical data) — not BOLA")
 
         m = hyp.meta
-        return Verdict(True, "cross-session differential confirms BOLA", finding=_finding(
+        finding = _finding(
             hyp,
             title=f"BOLA — {m['attacker_role']} reads {m['owner_role']}'s {m['object']} #{m['id']}",
             observed=f"{m['attacker_role']} received {m['owner_role']}'s {m['object']} "
@@ -188,7 +198,9 @@ class Oracle:
                    "owner_status": owner["status"], "attacker_status": attacker["status"],
                    "guest_status": (guest or {}).get("status"),
                    "poc": hyp.request_sequence, "reproduced": True},
-        ))
+        )
+        return Verdict(True, "cross-session differential confirms BOLA",
+                       finding=self._opd(finding, attacker.get("json"), m["attacker_role"]))
 
     # ---- coupon abuse: sequential redemption count --------------------
 
@@ -330,12 +342,14 @@ class Oracle:
                 pii |= p
             if secret or (pii and len(grecords) >= 2):       # secrets leak on sight; PII needs a list
                 fields = sorted(secret | pii)
-                return Verdict(True, "public endpoint exposes sensitive data", finding=_finding(
+                pub = _finding(
                     hyp, title=f"excessive_data_exposure — {obj} exposes {', '.join(fields)} to unauthenticated users",
                     observed=f"guest (no auth) read {len(grecords)} {obj} record(s) exposing "
                              f"{', '.join(fields)} at {url}",
                     proof={"oracle": "public_sensitive_exposure", "fields": fields,
-                           "record_count": len(grecords), "guest_status": 200, "poc": hyp.request_sequence}))
+                           "record_count": len(grecords), "guest_status": 200, "poc": hyp.request_sequence})
+                return Verdict(True, "public endpoint exposes sensitive data",
+                               finding=self._opd(pub, guest.get("json"), "guest"))
             return Verdict(False, "public endpoint with no sensitive fields — not a leak")
 
         # --- private endpoint: leak if one user's list carries many owners ---
@@ -345,13 +359,15 @@ class Oracle:
         owners = {o for o in (owner_of(rec) for rec in records) if o is not None}
         if len(owners) < 2:
             return Verdict(False, "no owner field or a single owner — not co-mingled")
-        return Verdict(True, "one user's list carries multiple owners", finding=_finding(
+        comingled = _finding(
             hyp, title=f"excessive_data_exposure — {obj} list leaks all users' records",
             observed=f"userA received {len(records)} {obj} record(s) owned by {len(owners)} distinct "
                      f"users at {url} (guest denied — private data)",
             proof={"oracle": "owner_comingling", "list_url": url, "distinct_owners": len(owners),
                    "record_count": len(records), "guest_status": (guest or {}).get("status"),
-                   "poc": hyp.request_sequence}))
+                   "poc": hyp.request_sequence})
+        return Verdict(True, "one user's list carries multiple owners",
+                       finding=self._opd(comingled, a.get("json"), "userA"))
 
     # ---- Oracle 1: invariant assertion (price / mass-assignment) ------
 
