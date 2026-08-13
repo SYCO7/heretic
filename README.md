@@ -721,6 +721,7 @@ Use a local model: `ollama pull qwen2.5:7b`, then run without `--model`. Nothing
 | 9 | [`docs/09-LIVE-VALIDATION.md`](docs/09-LIVE-VALIDATION.md) | Reproduce the live runs, score recall/FP |
 | 11 | [`docs/11-REAL-WORLD.md`](docs/11-REAL-WORLD.md) | **Run on an authorized real target** — get the real-world number |
 | 12 | [`docs/12-ALGORITHM-OPD.md`](docs/12-ALGORITHM-OPD.md) | **OPD — HERETIC's own algorithm** (ownership provenance differential) |
+| ★ | [`docs/TESTING.md`](docs/TESTING.md) | **Test every feature on Windows** (all backends, screenshot checklist) |
 | ★ | [`docs/CI.md`](docs/CI.md) | Run in CI — SARIF + GitHub Action |
 
 ---
