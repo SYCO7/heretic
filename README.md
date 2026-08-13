@@ -10,6 +10,7 @@
 ![license](https://img.shields.io/badge/license-Apache--2.0-blue)
 ![python](https://img.shields.io/badge/python-3.11%2B-blue)
 ![release](https://img.shields.io/github/v/release/SYCO7/heretic?label=release&color=blue)
+[![pypi](https://img.shields.io/pypi/v/heretic-agent?color=blue&logo=pypi&logoColor=white)](https://pypi.org/project/heretic-agent/)
 ![tests](https://img.shields.io/badge/tests-130%20passing-brightgreen)
 ![precision](https://img.shields.io/badge/precision-100%25-brightgreen)
 ![recall](https://img.shields.io/badge/recall-100%25-brightgreen)
